@@ -9,7 +9,7 @@ import {
   X,
   Network,
 } from "lucide-react";
-import GIF from "gif.js.optimized";
+import GIF from "gif.js";
 
 const MYTHIC_COLORS = [
   {
