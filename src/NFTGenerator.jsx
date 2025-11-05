@@ -7,8 +7,9 @@ import {
   ShoppingBag,
   FileJson,
 } from "lucide-react";
-import { BuyWidget, ConnectButton, createThirdwebClient } from "thirdweb/react";
-import { base } from "thirdweb/chains";
+import { BuyWidget, ConnectButton } from "thirdweb/react";
+import { createThirdwebClient } from "thirdweb";
+
 
 const treasuryAddress = "0x802Ef4Dd42D736eF4EFf0A32A6dCCeaE151B765D";
 const clientId = "821819db832d1a313ae3b1a62fbeafb7";
