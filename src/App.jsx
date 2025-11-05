@@ -90,18 +90,18 @@ function NFTCanvas({ image, colorIdx, stats, edition, transform }) {
         ctx.restore();
       } else {
         ctx.fillStyle = color.primary;
-        ctx.font = "bold 32px Arial";
+        ctx.font = "bold 32px Inter, Arial";
         ctx.textAlign = "center";
         ctx.fillText("Upload Your Image", 400, 420);
       }
 
       ctx.fillStyle = color.primary;
-      ctx.font = "bold 56px Arial";
+      ctx.font = "bold 56px Inter, Arial";
       ctx.textAlign = "center";
       ctx.fillText(`NFT #${edition.toString().padStart(3, "0")}`, 400, 130);
 
       ctx.fillStyle = color.primary;
-      ctx.font = "bold 36px Arial";
+      ctx.font = "bold 36px Inter, Arial";
       ctx.fillText(color.name.toUpperCase(), 400, 768);
 
       const statList = [
@@ -113,7 +113,7 @@ function NFTCanvas({ image, colorIdx, stats, edition, transform }) {
 
       statList.forEach((s) => {
         ctx.fillStyle = "white";
-        ctx.font = "bold 28px Arial";
+        ctx.font = "bold 28px Inter, Arial";
         ctx.textAlign = "left";
         ctx.fillText(s.label, 100, s.y);
         ctx.fillStyle = "rgba(255,255,255,0.1)";
@@ -121,7 +121,7 @@ function NFTCanvas({ image, colorIdx, stats, edition, transform }) {
         ctx.fillStyle = color.primary;
         ctx.fillRect(200, s.y - 25, (s.value / 100) * 500, 35);
         ctx.fillStyle = "white";
-        ctx.font = "bold 24px Arial";
+        ctx.font = "bold 24px Inter, Arial";
         ctx.textAlign = "center";
         ctx.fillText(s.value, 700, s.y);
       });
@@ -135,7 +135,14 @@ function NFTCanvas({ image, colorIdx, stats, edition, transform }) {
   return (
     <canvas
       ref={canvasRef}
-      style={{ width: "100%", maxWidth: 400, borderRadius: 16 }}
+      style={{
+        width: "100%",
+        maxWidth: 400,
+        borderRadius: 24,
+        boxShadow: "0 8px 32px 0 rgba(0,255,255,0.15)",
+        background: "#0a3d91",
+        display: "block",
+      }}
     />
   );
 }
@@ -256,36 +263,27 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 to-blue-800 p-4">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-          <h1 className="text-4xl font-bold text-cyan-400">
+    <div
+      className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-900 to-blue-800 p-4"
+      style={{ fontFamily: "'Inter', Arial, sans-serif" }}
+    >
+      <div className="w-full max-w-2xl bg-white/10 backdrop-blur-lg rounded-3xl shadow-2xl p-8">
+        <div className="flex flex-col items-center mb-8 gap-2">
+          <img
+            src="https://cryptologos.cc/logos/ethereum-eth-logo.png"
+            alt="Logo"
+            className="w-14 h-14 mb-2"
+            style={{ filter: "drop-shadow(0 0 8px #00ffff88)" }}
+          />
+          <h1 className="text-4xl font-bold text-cyan-400 mb-2 text-center">
             NFT Card Generator
           </h1>
-          <div className="flex gap-2">
-            {wallet ? (
-              <div className="bg-green-600/20 border border-green-500 rounded-lg px-4 py-2 text-white text-sm">
-                {wallet.slice(0, 6)}...{wallet.slice(-4)}
-              </div>
-            ) : (
-              <button
-                onClick={() => setShowWallet(true)}
-                className="bg-green-600 text-white px-4 py-2 rounded-lg"
-              >
-                Connect Wallet
-              </button>
-            )}
-            <button
-              onClick={() => setShowNetwork(true)}
-              className="bg-purple-600 text-white px-4 py-2 rounded-lg"
-            >
-              {NETWORKS[network].name}
-            </button>
-          </div>
+          <p className="text-blue-200 text-lg text-center">
+            Create epic mythic cards • Connect wallet to mint
+          </p>
         </div>
-
         <div className="grid md:grid-cols-2 gap-8">
-          <div className="bg-black/50 rounded-2xl p-6 border border-cyan-500/30">
+          <div className="flex flex-col items-center">
             <NFTCanvas
               image={image}
               colorIdx={colorIdx}
@@ -302,7 +300,7 @@ export default function App() {
                       scale: Math.min(t.scale * 1.1, 2),
                     }))
                   }
-                  className="bg-blue-700 text-white px-3 py-2 rounded"
+                  className="bg-blue-700 hover:bg-blue-600 text-white px-3 py-2 rounded-xl shadow transition"
                 >
                   +
                 </button>
@@ -313,23 +311,29 @@ export default function App() {
                       scale: Math.max(t.scale * 0.9, 0.2),
                     }))
                   }
-                  className="bg-blue-700 text-white px-3 py-2 rounded"
+                  className="bg-blue-700 hover:bg-blue-600 text-white px-3 py-2 rounded-xl shadow transition"
                 >
                   -
                 </button>
                 <button
                   onClick={() =>
-                    setTransform((t) => ({ ...t, positionX: t.positionX - 20 }))
+                    setTransform((t) => ({
+                      ...t,
+                      positionX: t.positionX - 20,
+                    }))
                   }
-                  className="bg-gray-700 text-white px-3 py-2 rounded"
+                  className="bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded-xl shadow transition"
                 >
                   ←
                 </button>
                 <button
                   onClick={() =>
-                    setTransform((t) => ({ ...t, positionX: t.positionX + 20 }))
+                    setTransform((t) => ({
+                      ...t,
+                      positionX: t.positionX + 20,
+                    }))
                   }
-                  className="bg-gray-700 text-white px-3 py-2 rounded"
+                  className="bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded-xl shadow transition"
                 >
                   →
                 </button>
@@ -337,15 +341,14 @@ export default function App() {
             )}
             <button
               onClick={download}
-              className="w-full mt-4 bg-green-600 text-white font-bold py-3 rounded-lg"
+              className="w-full mt-4 bg-gradient-to-r from-green-400 to-emerald-600 hover:from-green-500 hover:to-emerald-700 text-white font-bold py-3 rounded-xl shadow-lg text-lg transition"
             >
               💾 Download
             </button>
           </div>
-
           <div className="space-y-6">
-            <div className="bg-black/50 rounded-2xl p-6 border border-cyan-500/30">
-              <h2 className="text-2xl font-bold text-cyan-400 mb-4">
+            <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-cyan-400 shadow">
+              <h2 className="text-2xl font-bold text-cyan-400 mb-4 flex items-center gap-2">
                 📸 Upload
               </h2>
               <input
@@ -357,14 +360,13 @@ export default function App() {
               />
               <button
                 onClick={() => fileRef.current?.click()}
-                className="w-full bg-cyan-600 text-white font-bold py-4 rounded-lg"
+                className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-bold py-4 rounded-xl shadow transition"
               >
                 Choose Image
               </button>
             </div>
-
-            <div className="bg-black/50 rounded-2xl p-6 border border-purple-500/30">
-              <h2 className="text-2xl font-bold text-purple-400 mb-4">
+            <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-purple-400 shadow">
+              <h2 className="text-2xl font-bold text-purple-400 mb-4 flex items-center gap-2">
                 ✨ Colors
               </h2>
               <div className="grid grid-cols-2 gap-3">
@@ -372,21 +374,20 @@ export default function App() {
                   onClick={() =>
                     setColorIdx((colorIdx - 1 + COLORS.length) % COLORS.length)
                   }
-                  className="bg-purple-600 text-white font-bold py-3 rounded-lg"
+                  className="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white font-bold py-3 rounded-xl shadow transition"
                 >
                   ← Prev
                 </button>
                 <button
                   onClick={() => setColorIdx((colorIdx + 1) % COLORS.length)}
-                  className="bg-purple-600 text-white font-bold py-3 rounded-lg"
+                  className="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white font-bold py-3 rounded-xl shadow transition"
                 >
                   Next →
                 </button>
               </div>
             </div>
-
-            <div className="bg-black/50 rounded-2xl p-6 border border-yellow-500/30">
-              <h2 className="text-2xl font-bold text-yellow-400 mb-4">
+            <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-yellow-400 shadow">
+              <h2 className="text-2xl font-bold text-yellow-400 mb-4 flex items-center gap-2">
                 ⚡ Stats
               </h2>
               {Object.entries(stats).map(([key, value]) => (
@@ -403,19 +404,18 @@ export default function App() {
                     onChange={(e) =>
                       setStats((s) => ({ ...s, [key]: Number(e.target.value) }))
                     }
-                    className="w-full"
+                    className="w-full accent-yellow-400"
                   />
                 </div>
               ))}
             </div>
-
-            <div className="bg-black/50 rounded-2xl p-6 border border-green-500/30">
-              <h2 className="text-2xl font-bold text-green-400 mb-4">
+            <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-green-400 shadow">
+              <h2 className="text-2xl font-bold text-green-400 mb-4 flex items-center gap-2">
                 🔥 Mint
               </h2>
               <button
                 onClick={mint}
-                className="w-full bg-green-600 text-white font-bold py-4 rounded-lg"
+                className="w-full bg-gradient-to-r from-green-400 to-emerald-600 hover:from-green-500 hover:to-emerald-700 text-white font-bold py-4 rounded-xl shadow-lg text-lg transition flex items-center justify-center gap-2"
                 disabled={!wallet || !image}
                 title={
                   !wallet ? "Connect wallet" : !image ? "Upload image" : ""
@@ -424,56 +424,94 @@ export default function App() {
                 Pay {NETWORKS[network].fee} {NETWORKS[network].symbol}
               </button>
             </div>
+            <div className="flex gap-2 justify-center">
+              {wallet ? (
+                <div className="bg-green-600/20 border border-green-500 rounded-lg px-4 py-2 text-white text-sm flex items-center gap-2">
+                  <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                  {wallet.slice(0, 6)}...{wallet.slice(-4)}
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowWallet(true)}
+                  className="bg-gradient-to-r from-green-400 to-emerald-600 hover:from-green-500 hover:to-emerald-700 text-white px-4 py-2 rounded-xl shadow transition font-bold"
+                >
+                  Connect Wallet
+                </button>
+              )}
+              <button
+                onClick={() => setShowNetwork(true)}
+                className="bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white px-4 py-2 rounded-xl shadow transition font-bold"
+              >
+                {NETWORKS[network].name}
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
+      {/* Modern Wallet Modal */}
       {showWallet && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
-          <div className="bg-gray-900 border-2 border-cyan-500 rounded-2xl p-8 max-w-md w-full">
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+          <div className="bg-white/10 backdrop-blur-lg border-2 border-cyan-400 rounded-2xl p-8 max-w-xs w-full shadow-xl">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-white">Connect Wallet</h2>
+              <h2 className="text-xl font-bold text-white">Connect Wallet</h2>
               <button
                 onClick={() => setShowWallet(false)}
-                className="text-white text-3xl"
+                className="text-white text-2xl hover:text-cyan-400"
               >
-                ✕
+                ×
               </button>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-4">
               <button
                 onClick={() => connectWallet("metamask")}
-                className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 rounded-lg"
+                className="w-full flex items-center gap-3 bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white font-bold py-3 px-4 rounded-xl shadow-md transition"
               >
-                🦊 MetaMask
+                <img
+                  src="https://cryptologos.cc/logos/metamask-fox-logo.png"
+                  alt="MetaMask"
+                  className="w-7 h-7"
+                />
+                MetaMask
               </button>
               <button
                 onClick={() => connectWallet("trust")}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-lg"
+                className="w-full flex items-center gap-3 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-bold py-3 px-4 rounded-xl shadow-md transition"
               >
-                💙 Trust Wallet
+                <img
+                  src="https://cryptologos.cc/logos/trust-wallet-trust-logo.png"
+                  alt="Trust"
+                  className="w-7 h-7"
+                />
+                Trust Wallet
               </button>
               <button
                 onClick={() => connectWallet("coinbase")}
-                className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 rounded-lg"
+                className="w-full flex items-center gap-3 bg-gradient-to-r from-blue-700 to-indigo-500 hover:from-blue-800 hover:to-indigo-600 text-white font-bold py-3 px-4 rounded-xl shadow-md transition"
               >
-                🔵 Coinbase Wallet
+                <img
+                  src="https://cryptologos.cc/logos/coinbase-coinbase-logo.png"
+                  alt="Coinbase"
+                  className="w-7 h-7"
+                />
+                Coinbase Wallet
               </button>
             </div>
           </div>
         </div>
       )}
 
+      {/* Network Modal */}
       {showNetwork && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
-          <div className="bg-gray-900 border-2 border-purple-500 rounded-2xl p-8 max-w-md w-full">
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+          <div className="bg-white/10 backdrop-blur-lg border-2 border-purple-400 rounded-2xl p-8 max-w-xs w-full shadow-xl">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-white">Select Network</h2>
+              <h2 className="text-xl font-bold text-white">Select Network</h2>
               <button
                 onClick={() => setShowNetwork(false)}
-                className="text-white text-3xl"
+                className="text-white text-2xl hover:text-purple-400"
               >
-                ✕
+                ×
               </button>
             </div>
             <div className="space-y-3">
@@ -484,7 +522,7 @@ export default function App() {
                     setNetwork(key);
                     setShowNetwork(false);
                   }}
-                  className="w-full bg-blue-600 text-white font-bold py-4 rounded-lg"
+                  className="w-full bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white font-bold py-4 rounded-xl shadow transition"
                 >
                   {net.name} - {net.fee} {net.symbol}
                 </button>
