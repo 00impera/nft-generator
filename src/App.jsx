@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Upload, Download, Sparkles, Wallet, X, Network, Film, Info, Copy, Palette, Wand2 } from 'lucide-react';
+import { Upload, Download, Sparkles, Wallet, X, Network, Film, Info, Copy, Palette, Wand2, Zap } from 'lucide-react';
 
 const MYTHIC_COLORS = [
   { name: 'Electric Cyan', primary: '#00ffff', secondary: '#0088ff', glow: 'rgba(0,255,255,0.5)' },
