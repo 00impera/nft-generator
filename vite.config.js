@@ -3,10 +3,5 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  base: '/nft-generator/',
-  build: {
-    outDir: 'dist',
-    assetsDir: 'assets',
-  },
-  publicDir: 'public'
+  base: '/nft-generator/'
 })
