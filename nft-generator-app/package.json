@@ -1,7 +1,7 @@
 {
   "name": "nft-generator-app",
   "version": "1.0.0",
-  "homepage": "https://00impera.github.io/nft-generator-app",
+  "homepage": "https://00impera.github.io/nft-generator",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
