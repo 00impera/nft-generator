@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Sparkles, Camera, Palette, Zap, Download, Check, Lock, Unlock, Film, Image as ImageIcon, RefreshCw } from "lucide-react";
+import { Sparkles, Camera, Palette, Zap, Download, Check, Lock, Unlock, Film, Image as ImageIcon, RefreshCw, Paintbrush } from "lucide-react";
 import { createThirdwebClient } from "thirdweb";
 import { ConnectButton, useActiveAccount, useActiveWallet } from "thirdweb/react";
 
@@ -24,6 +24,29 @@ const NETWORKS = [
 
 const TREASURY = "0x592B35c8917eD36c39Ef73D0F5e92B0173560b2e";
 
+const BUTTON_THEMES = {
+  blue: {
+    label: "Blue",
+    gradient: "from-blue-600 to-blue-400 hover:from-blue-700 hover:to-blue-500",
+    icon: <Paintbrush className="w-5 h-5 text-blue-400" />
+  },
+  green: {
+    label: "Green",
+    gradient: "from-green-600 to-emerald-400 hover:from-green-700 hover:to-emerald-500",
+    icon: <Paintbrush className="w-5 h-5 text-green-400" />
+  },
+  purple: {
+    label: "Purple",
+    gradient: "from-purple-600 to-pink-400 hover:from-purple-700 hover:to-pink-500",
+    icon: <Paintbrush className="w-5 h-5 text-purple-400" />
+  },
+  red: {
+    label: "Red",
+    gradient: "from-rose-600 to-orange-400 hover:from-rose-700 hover:to-orange-500",
+    icon: <Paintbrush className="w-5 h-5 text-rose-400" />
+  }
+};
+
 export default function App() {
   const [media, setMedia] = useState(null);
   const [name, setName] = useState("Epic NFT");
@@ -37,6 +60,7 @@ export default function App() {
   const [mediaType, setMediaType] = useState("image");
   const [frames, setFrames] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [buttonTheme, setButtonTheme] = useState("blue");
   const fileInputRef = useRef();
   const canvasRef = useRef();
   const account = useActiveAccount();
@@ -232,6 +256,7 @@ export default function App() {
   };
 
   const rarityTheme = RARITY_COLORS[rarity];
+  const buttonGradient = BUTTON_THEMES[buttonTheme].gradient;
 
   return (
     <div className="min-h-screen w-full bg-[#0a0a0a] text-white flex flex-col items-center justify-center p-2 md:p-6">
@@ -254,16 +279,44 @@ export default function App() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Controls */}
           <div className="space-y-6">
+            {/* Button Color Theme Selector */}
+            <div className="bg-black/80 rounded-2xl p-6 border border-blue-700/40 flex flex-col gap-3">
+              <h3 className="text-blue-400 font-bold mb-2 flex items-center gap-2 text-lg">
+                <Paintbrush className="w-6 h-6" /> Button Color
+              </h3>
+              <div className="flex gap-3">
+                {Object.entries(BUTTON_THEMES).map(([key, theme]) => (
+                  <button
+                    key={key}
+                    onClick={() => setButtonTheme(key)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold border-2 transition-all shadow ${buttonTheme === key
+                      ? `border-white bg-gradient-to-r ${theme.gradient} scale-105`
+                      : "border-transparent bg-black/40 hover:scale-105"}`}
+                  >
+                    {theme.icon}
+                    {theme.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Upload */}
             <div className="bg-black/80 rounded-2xl p-6 border border-blue-700/40">
               <h3 className="text-blue-400 font-bold mb-4 flex items-center gap-2 text-lg">
                 <Camera className="w-6 h-6" /> Upload Media
               </h3>
               <div className="grid grid-cols-2 gap-4">
-                <button onClick={() => fileInputRef.current?.click()} className="py-4 rounded-xl font-bold text-white bg-gradient-to-r from-blue-600 to-blue-400 hover:from-blue-700 hover:to-blue-500 transition-all shadow-lg hover:shadow-blue-500/50 flex items-center justify-center gap-2">
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`py-4 rounded-xl font-bold text-white bg-gradient-to-r ${buttonGradient} transition-all shadow-lg flex items-center justify-center gap-2`}
+                >
                   <ImageIcon className="w-5 h-5" />Choose File
                 </button>
-                <button onClick={convertToGif} disabled={!media || mediaType === "gif" || isProcessing} className="py-4 rounded-xl font-bold text-white bg-gradient-to-r from-blue-700 to-blue-500 hover:from-blue-800 hover:to-blue-600 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                <button
+                  onClick={convertToGif}
+                  disabled={!media || mediaType === "gif" || isProcessing}
+                  className={`py-4 rounded-xl font-bold text-white bg-gradient-to-r ${buttonGradient} transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
+                >
                   {isProcessing ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Film className="w-5 h-5" />}
                   {isProcessing ? "Processing..." : "To GIF"}
                 </button>
@@ -302,7 +355,10 @@ export default function App() {
                 <h3 className="text-blue-400 font-bold flex items-center gap-3 text-lg">
                   <Zap className="w-6 h-6" /> Attributes
                 </h3>
-                <button onClick={randomizeStats} className="text-blue-400 text-sm flex items-center gap-2 font-bold hover:text-blue-300 transition-all px-4 py-2 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30">
+                <button
+                  onClick={randomizeStats}
+                  className={`text-white text-sm flex items-center gap-2 font-bold px-4 py-2 rounded-xl border border-blue-500/30 bg-gradient-to-r ${buttonGradient} transition-all`}
+                >
                   <Zap className="w-5 h-5" /> Randomize
                 </button>
               </div>
@@ -324,7 +380,7 @@ export default function App() {
               </h3>
               <div className="grid grid-cols-2 gap-3">
                 {NETWORKS.map(net => (
-                  <button key={net.name} onClick={() => setNetwork(net)} className={`py-4 px-4 rounded-xl font-bold text-base transition-all ${network.name === net.name ? 'bg-gradient-to-r from-blue-600 to-blue-400 text-white shadow-xl scale-105 border-2 border-blue-400' : 'bg-slate-700/60 text-slate-300 hover:bg-slate-600/60 border-2 border-slate-600/30'}`}>
+                  <button key={net.name} onClick={() => setNetwork(net)} className={`py-4 px-4 rounded-xl font-bold text-base transition-all ${network.name === net.name ? `bg-gradient-to-r ${buttonGradient} text-white shadow-xl scale-105 border-2 border-white` : "bg-slate-700/60 text-slate-300 hover:bg-slate-600/60 border-2 border-slate-600/30"}`}>
                     <div className="text-2xl mb-1">{net.icon}</div>
                     {net.name}
                     <div className="text-xs mt-1 opacity-80">{net.fee} {net.symbol}</div>
@@ -339,14 +395,26 @@ export default function App() {
                 <div className="p-2 rounded-xl bg-blue-500/20">{isPaid ? <Unlock className="w-6 h-6 text-blue-400" /> : <Lock className="w-6 h-6 text-blue-400" />}</div>
                 {isPaid ? "✅ Downloads Unlocked" : "🔒 Payment Required"}
               </h3>
-              <button onClick={mintWithPayment} disabled={txStatus === "pending" || isPaid || !account} className={`w-full py-5 rounded-xl font-bold mb-4 flex items-center justify-center gap-3 text-lg transition-all shadow-lg ${isPaid ? "bg-slate-700 text-slate-400 cursor-not-allowed" : account ? "bg-gradient-to-r from-blue-600 to-blue-400 hover:from-blue-700 hover:to-blue-500 text-white hover:shadow-blue-500/50 hover:scale-105" : "bg-slate-700 text-slate-400 cursor-not-allowed"}`}>
+              <button
+                onClick={mintWithPayment}
+                disabled={txStatus === "pending" || isPaid || !account}
+                className={`w-full py-5 rounded-xl font-bold mb-4 flex items-center justify-center gap-3 text-lg transition-all shadow-lg ${isPaid ? "bg-slate-700 text-slate-400 cursor-not-allowed" : account ? `bg-gradient-to-r ${buttonGradient} text-white hover:shadow-lg hover:scale-105` : "bg-slate-700 text-slate-400 cursor-not-allowed"}`}
+              >
                 {!account ? <><Lock className="w-6 h-6" /> Connect Wallet First</> : isPaid ? <><Check className="w-6 h-6" /> Payment Completed</> : txStatus === "pending" ? <><RefreshCw className="w-6 h-6 animate-spin" /> Processing...</> : <><span className="text-2xl">{network.icon}</span>Pay {network.fee} {network.symbol}</>}
               </button>
               <div className="grid grid-cols-2 gap-4">
-                <button onClick={downloadCard} disabled={!isPaid} className={`py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg ${isPaid ? "bg-gradient-to-r from-blue-600 to-blue-400 hover:from-blue-700 hover:to-blue-500 text-white hover:shadow-blue-500/50 hover:scale-105" : "bg-slate-700/60 text-slate-500 cursor-not-allowed"}`}>
+                <button
+                  onClick={downloadCard}
+                  disabled={!isPaid}
+                  className={`py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg ${isPaid ? `bg-gradient-to-r ${buttonGradient} text-white hover:shadow-lg hover:scale-105` : "bg-slate-700/60 text-slate-500 cursor-not-allowed"}`}
+                >
                   <Download className="w-5 h-5" /> Card PNG
                 </button>
-                <button onClick={downloadMetadata} disabled={!isPaid} className={`py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg ${isPaid ? "bg-gradient-to-r from-blue-700 to-blue-500 hover:from-blue-800 hover:to-blue-600 text-white hover:shadow-blue-500/50 hover:scale-105" : "bg-slate-700/60 text-slate-500 cursor-not-allowed"}`}>
+                <button
+                  onClick={downloadMetadata}
+                  disabled={!isPaid}
+                  className={`py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg ${isPaid ? `bg-gradient-to-r ${buttonGradient} text-white hover:shadow-lg hover:scale-105` : "bg-slate-700/60 text-slate-500 cursor-not-allowed"}`}
+                >
                   <Download className="w-5 h-5" /> Metadata
                 </button>
               </div>
