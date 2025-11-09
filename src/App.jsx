@@ -185,12 +185,12 @@ export default function App() {
   });
 
   return (
-    <div className="min-h-screen bg-black p-4" style={{ backgroundImage: "radial-gradient(circle at 50% 50%, #1a1a1a 0%, #000 100%)" }}>
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-black p-2 sm:p-4 md:p-6" style={{ backgroundImage: "radial-gradient(circle at 50% 50%, #1a1a1a 0%, #000 100%)" }}>
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-          <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-yellow-200 to-yellow-400 flex items-center gap-3">
-            <Sparkles className="w-10 h-10 text-yellow-400" style={{ filter: "drop-shadow(0 0 10px #d4af37)" }} />
+        <div className="flex flex-col sm:flex-row justify-between items-center mb-4 sm:mb-6 md:mb-8 gap-3 sm:gap-4">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-yellow-200 to-yellow-400 flex items-center gap-2 sm:gap-3">
+            <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 text-yellow-400" style={{ filter: "drop-shadow(0 0 10px #d4af37)" }} />
             Luxury NFT Generator
           </h1>
           <div className="flex gap-3">
