@@ -234,7 +234,7 @@ export default function App() {
   const rarityTheme = RARITY_COLORS[rarity];
 
   return (
-    <div className="min-h-screen w-full bg-black text-white flex flex-col items-center justify-center p-2 md:p-6">
+    <div className="min-h-screen w-full bg-[#0a0a0a] text-white flex flex-col items-center justify-center p-2 md:p-6">
       <div className="w-full max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 p-6 rounded-3xl bg-gradient-to-r from-blue-900/60 via-black/80 to-blue-900/60 border-2 border-blue-700/30 shadow-2xl mb-8">
@@ -255,7 +255,7 @@ export default function App() {
           {/* Controls */}
           <div className="space-y-6">
             {/* Upload */}
-            <div className="bg-slate-900/80 rounded-2xl p-6 border border-blue-700/40">
+            <div className="bg-black/80 rounded-2xl p-6 border border-blue-700/40">
               <h3 className="text-blue-400 font-bold mb-4 flex items-center gap-2 text-lg">
                 <Camera className="w-6 h-6" /> Upload Media
               </h3>
@@ -278,7 +278,7 @@ export default function App() {
             </div>
 
             {/* NFT Config */}
-            <div className="bg-slate-900/80 rounded-2xl p-6 border border-blue-700/40">
+            <div className="bg-black/80 rounded-2xl p-6 border border-blue-700/40">
               <h3 className="text-blue-400 font-bold mb-4 flex items-center gap-2 text-lg">
                 <Palette className="w-6 h-6" /> NFT Configuration
               </h3>
@@ -297,7 +297,7 @@ export default function App() {
             </div>
 
             {/* Attributes */}
-            <div className="bg-slate-900/80 rounded-2xl p-6 border border-blue-700/40">
+            <div className="bg-black/80 rounded-2xl p-6 border border-blue-700/40">
               <div className="flex justify-between items-center mb-5">
                 <h3 className="text-blue-400 font-bold flex items-center gap-3 text-lg">
                   <Zap className="w-6 h-6" /> Attributes
@@ -318,7 +318,7 @@ export default function App() {
             </div>
 
             {/* Network */}
-            <div className="bg-slate-900/80 rounded-2xl p-6 border border-blue-700/40">
+            <div className="bg-black/80 rounded-2xl p-6 border border-blue-700/40">
               <h3 className="text-blue-400 font-bold mb-4 flex items-center gap-2 text-lg">
                 <span className="text-2xl">⛓️</span> Select Network
               </h3>
@@ -334,7 +334,7 @@ export default function App() {
             </div>
 
             {/* Payment & Download */}
-            <div className="bg-slate-900/80 rounded-2xl p-6 border border-blue-700/40">
+            <div className="bg-black/80 rounded-2xl p-6 border border-blue-700/40">
               <h3 className="text-blue-400 font-bold mb-4 flex items-center gap-2 text-lg">
                 <div className="p-2 rounded-xl bg-blue-500/20">{isPaid ? <Unlock className="w-6 h-6 text-blue-400" /> : <Lock className="w-6 h-6 text-blue-400" />}</div>
                 {isPaid ? "✅ Downloads Unlocked" : "🔒 Payment Required"}
@@ -355,8 +355,21 @@ export default function App() {
 
           {/* NFT Card Preview */}
           <div className="flex justify-center items-start">
-            <div className="rounded-3xl overflow-hidden w-full max-w-md shadow-2xl" style={{ border: `4px solid ${rarityTheme.border}`, boxShadow: `0 0 50px ${rarityTheme.glow}, 0 0 100px ${rarityTheme.glow}` }}>
-              <div className="aspect-[2/3] flex items-center justify-center relative" style={{ background: rarityTheme.bg, minHeight: "500px" }}>
+            <div
+              className="rounded-3xl overflow-hidden w-full max-w-md shadow-2xl"
+              style={{
+                border: "4px solid #a855f7",
+                boxShadow: "0 0 50px #a855f7, 0 0 100px #a855f7",
+                background: "linear-gradient(135deg, #7c3aed 0%, #22d3ee 100%)",
+              }}
+            >
+              <div
+                className="aspect-[2/3] flex items-center justify-center relative"
+                style={{
+                  background: "linear-gradient(135deg, #7c3aed 0%, #22d3ee 100%)",
+                  minHeight: "500px",
+                }}
+              >
                 {media ? (
                   mediaType === "gif" && frames.length > 0 ? (
                     <img src={frames[Math.floor(Date.now() / 200) % frames.length]} alt="NFT GIF" className="w-full h-full object-cover" />
@@ -373,7 +386,7 @@ export default function App() {
                   </div>
                 )}
                 {mediaType === "gif" && (
-                  <div className="absolute top-4 right-4 bg-gradient-to-r from-blue-600 to-blue-400 text-white px-4 py-2 rounded-full font-bold text-sm flex items-center gap-2 shadow-lg">
+                  <div className="absolute top-4 right-4 bg-gradient-to-r from-purple-600 to-blue-400 text-white px-4 py-2 rounded-full font-bold text-sm flex items-center gap-2 shadow-lg">
                     <Film className="w-4 h-4" />ANIMATED
                   </div>
                 )}
