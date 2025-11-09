@@ -1,0 +1,1 @@
+import{a as s}from"./index-BiujmS5U.js";async function d(n){const a=await s();if(!n.every(i=>a.includes(i.id)))throw new Error(`Insight is not available for chains ${n.filter(i=>!a.includes(i.id)).map(i=>i.id).join(", ")}`)}export{d as assertInsightEnabled};
