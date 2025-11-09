@@ -51,13 +51,6 @@ const BUTTON_THEMES = {
   }
 };
 
-const STATUS_LEDS = {
-  ready: { label: "Ready", color: "bg-gray-400" },
-  processing: { label: "Processing", color: "bg-yellow-400 animate-pulse" },
-  success: { label: "Success", color: "bg-green-400" },
-  error: { label: "Error", color: "bg-rose-400" }
-};
-
 export default function App() {
   const [media, setMedia] = useState(null);
   const [name, setName] = useState("Epic NFT");
@@ -72,8 +65,6 @@ export default function App() {
   const [frames, setFrames] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [buttonTheme, setButtonTheme] = useState("blue");
-  const [statusLed, setStatusLed] = useState("ready");
-  const [ledActive, setLedActive] = useState({});
   const fileInputRef = useRef();
   const canvasRef = useRef();
   const account = useActiveAccount();
@@ -84,29 +75,19 @@ export default function App() {
     return () => { document.body.style.overflowX = ""; };
   }, []);
 
-  // Helper to animate LED on button click
-  const triggerLed = (key) => {
-    setLedActive((prev) => ({ ...prev, [key]: true }));
-    setTimeout(() => setLedActive((prev) => ({ ...prev, [key]: false })), 400);
-  };
-
   const mintWithPayment = async () => {
-    triggerLed("pay");
-    if (!account) { setStatusLed("error"); alert("⚠️ Please connect your wallet first!"); return; }
-    if (!media) { setStatusLed("error"); alert("⚠️ Upload media first!"); return; }
+    if (!account) { alert("⚠️ Please connect your wallet first!"); return; }
+    if (!media) { alert("⚠️ Upload media first!"); return; }
     try {
-      setStatusLed("processing");
       setTxStatus("pending");
       const tx = { to: TREASURY, value: BigInt(Math.floor(parseFloat(network.fee) * 1e18)) };
       const result = await wallet.sendTransaction(tx);
       setTxHash(result.transactionHash);
       setTxStatus("success");
       setIsPaid(true);
-      setStatusLed("success");
-      setTimeout(() => { alert("✅ Payment successful! Downloads unlocked."); setStatusLed("ready"); }, 500);
+      setTimeout(() => { alert("✅ Payment successful! Downloads unlocked."); }, 500);
     } catch (err) {
       setTxStatus("failed");
-      setStatusLed("error");
       console.error(err);
       if (err.code === 4001 || err.message?.includes("user rejected")) {
         alert("❌ Transaction cancelled");
@@ -115,12 +96,10 @@ export default function App() {
       } else {
         alert("❌ Transaction failed");
       }
-      setTimeout(() => setStatusLed("ready"), 1000);
     }
   };
 
   const handleMediaUpload = (e) => {
-    triggerLed("upload");
     const file = e.target.files?.[0];
     if (!file) return;
     const isGif = file.type === "image/gif";
@@ -131,15 +110,11 @@ export default function App() {
       if (isGif) setFrames([ev.target.result]);
     };
     reader.readAsDataURL(file);
-    setStatusLed("success");
-    setTimeout(() => setStatusLed("ready"), 500);
   };
 
   const convertToGif = () => {
-    triggerLed("gif");
-    if (!media) { setStatusLed("error"); alert("⚠️ Upload an image first!"); return; }
+    if (!media) { alert("⚠️ Upload an image first!"); return; }
     setIsProcessing(true);
-    setStatusLed("processing");
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     const img = new window.Image();
@@ -161,16 +136,13 @@ export default function App() {
       setFrames(animatedFrames);
       setMediaType("gif");
       setIsProcessing(false);
-      setStatusLed("success");
       alert("✨ Animated GIF created!");
-      setTimeout(() => setStatusLed("ready"), 500);
     };
     img.src = media;
   };
 
   const downloadMetadata = () => {
-    triggerLed("meta");
-    if (!isPaid) { setStatusLed("error"); alert("🔒 Please complete payment first!"); return; }
+    if (!isPaid) { alert("🔒 Please complete payment first!"); return; }
     const metadata = {
       name, description: `${rarity} NFT on ${network.name}`, image: media || "ipfs://...",
       animation_url: mediaType === "gif" ? media : undefined,
@@ -191,13 +163,10 @@ export default function App() {
     a.download = `${name.replace(/\s+/g, "_")}_metadata.json`;
     a.click();
     URL.revokeObjectURL(url);
-    setStatusLed("success");
-    setTimeout(() => setStatusLed("ready"), 500);
   };
 
   const downloadCard = () => {
-    triggerLed("card");
-    if (!isPaid) { setStatusLed("error"); alert("🔒 Please complete payment first!"); return; }
+    if (!isPaid) { alert("🔒 Please complete payment first!"); return; }
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
     canvas.width = 600;
@@ -279,20 +248,15 @@ export default function App() {
       link.href = canvas.toDataURL("image/png");
       link.click();
     }
-    setStatusLed("success");
-    setTimeout(() => setStatusLed("ready"), 500);
   };
 
   const randomizeStats = () => {
-    triggerLed("random");
     setStats({
       attack: Math.floor(Math.random() * 100),
       defense: Math.floor(Math.random() * 100),
       speed: Math.floor(Math.random() * 100),
       magic: Math.floor(Math.random() * 100)
     });
-    setStatusLed("success");
-    setTimeout(() => setStatusLed("ready"), 500);
   };
 
   const rarityTheme = RARITY_COLORS[rarity];
@@ -301,13 +265,6 @@ export default function App() {
 
   return (
     <div className="min-h-screen w-full bg-[#0a0a0a] text-white flex flex-col items-center justify-center p-2 md:p-6">
-      {/* Global LED status bar */}
-      <div className="fixed top-0 left-0 w-full flex items-center justify-center z-50">
-        <div className="flex items-center gap-3 bg-black/80 px-4 py-2 rounded-b-2xl shadow-lg border-b-2 border-gray-800">
-          <span className={`w-4 h-4 rounded-full shadow ${STATUS_LEDS[statusLed].color}`}></span>
-          <span className="font-bold text-sm tracking-wide">{STATUS_LEDS[statusLed].label}</span>
-        </div>
-      </div>
       <div className="w-full max-w-6xl mx-auto mt-10">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 p-6 rounded-3xl bg-gradient-to-r from-blue-900/60 via-black/80 to-blue-900/60 border-2 border-blue-700/30 shadow-2xl mb-8">
@@ -336,12 +293,12 @@ export default function App() {
                 {Object.entries(BUTTON_THEMES).map(([key, theme]) => (
                   <button
                     key={key}
-                    onClick={() => { setButtonTheme(key); triggerLed("theme"); }}
+                    onClick={() => setButtonTheme(key)}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold border-2 transition-all shadow ${buttonTheme === key
                       ? `border-white bg-gradient-to-r ${theme.gradient} scale-105`
                       : "border-transparent bg-black/40 hover:scale-105"}`}
                   >
-                    <span className={`w-3 h-3 rounded-full shadow ${theme.led} ${ledActive["theme"] && buttonTheme === key ? "ring-2 ring-white animate-pulse" : ""}`}></span>
+                    <span className={`w-3 h-3 rounded-full shadow ${theme.led}`}></span>
                     {theme.icon}
                     {theme.label}
                   </button>
@@ -356,10 +313,10 @@ export default function App() {
               </h3>
               <div className="grid grid-cols-2 gap-4">
                 <button
-                  onClick={() => { fileInputRef.current?.click(); triggerLed("upload"); }}
+                  onClick={() => fileInputRef.current?.click()}
                   className={`py-4 rounded-xl font-bold text-white bg-gradient-to-r ${buttonGradient} transition-all shadow-lg flex items-center justify-center gap-2`}
                 >
-                  <span className={`w-3 h-3 rounded-full shadow ${buttonLed} ${ledActive["upload"] ? "ring-2 ring-white animate-pulse" : ""}`}></span>
+                  <span className={`w-3 h-3 rounded-full shadow ${buttonLed}`}></span>
                   <ImageIcon className="w-5 h-5" />Choose File
                 </button>
                 <button
@@ -367,7 +324,7 @@ export default function App() {
                   disabled={!media || mediaType === "gif" || isProcessing}
                   className={`py-4 rounded-xl font-bold text-white bg-gradient-to-r ${buttonGradient} transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
                 >
-                  <span className={`w-3 h-3 rounded-full shadow ${buttonLed} ${ledActive["gif"] ? "ring-2 ring-white animate-pulse" : ""}`}></span>
+                  <span className={`w-3 h-3 rounded-full shadow ${buttonLed}`}></span>
                   {isProcessing ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Film className="w-5 h-5" />}
                   {isProcessing ? "Processing..." : "To GIF"}
                 </button>
@@ -410,7 +367,7 @@ export default function App() {
                   onClick={randomizeStats}
                   className={`text-white text-sm flex items-center gap-2 font-bold px-4 py-2 rounded-xl border border-blue-500/30 bg-gradient-to-r ${buttonGradient} transition-all`}
                 >
-                  <span className={`w-3 h-3 rounded-full shadow ${buttonLed} ${ledActive["random"] ? "ring-2 ring-white animate-pulse" : ""}`}></span>
+                  <span className={`w-3 h-3 rounded-full shadow ${buttonLed}`}></span>
                   <Zap className="w-5 h-5" /> Randomize
                 </button>
               </div>
@@ -432,8 +389,8 @@ export default function App() {
               </h3>
               <div className="grid grid-cols-2 gap-3">
                 {NETWORKS.map(net => (
-                  <button key={net.name} onClick={() => { setNetwork(net); triggerLed("network"); }} className={`py-4 px-4 rounded-xl font-bold text-base transition-all ${network.name === net.name ? `bg-gradient-to-r ${buttonGradient} text-white shadow-xl scale-105 border-2 border-white` : "bg-slate-700/60 text-slate-300 hover:bg-slate-600/60 border-2 border-slate-600/30"}`}>
-                    <span className={`w-3 h-3 rounded-full shadow ${buttonLed} ${ledActive["network"] && network.name === net.name ? "ring-2 ring-white animate-pulse" : ""}`}></span>
+                  <button key={net.name} onClick={() => setNetwork(net)} className={`py-4 px-4 rounded-xl font-bold text-base transition-all ${network.name === net.name ? `bg-gradient-to-r ${buttonGradient} text-white shadow-xl scale-105 border-2 border-white` : "bg-slate-700/60 text-slate-300 hover:bg-slate-600/60 border-2 border-slate-600/30"}`}>
+                    <span className={`w-3 h-3 rounded-full shadow ${buttonLed}`}></span>
                     <div className="text-2xl mb-1">{net.icon}</div>
                     {net.name}
                     <div className="text-xs mt-1 opacity-80">{net.fee} {net.symbol}</div>
@@ -453,7 +410,7 @@ export default function App() {
                 disabled={txStatus === "pending" || isPaid || !account}
                 className={`w-full py-5 rounded-xl font-bold mb-4 flex items-center justify-center gap-3 text-lg transition-all shadow-lg ${isPaid ? "bg-slate-700 text-slate-400 cursor-not-allowed" : account ? `bg-gradient-to-r ${buttonGradient} text-white hover:shadow-lg hover:scale-105` : "bg-slate-700 text-slate-400 cursor-not-allowed"}`}
               >
-                <span className={`w-3 h-3 rounded-full shadow ${buttonLed} ${ledActive["pay"] ? "ring-2 ring-white animate-pulse" : ""}`}></span>
+                <span className={`w-3 h-3 rounded-full shadow ${buttonLed}`}></span>
                 {!account ? <><Lock className="w-6 h-6" /> Connect Wallet First</> : isPaid ? <><Check className="w-6 h-6" /> Payment Completed</> : txStatus === "pending" ? <><RefreshCw className="w-6 h-6 animate-spin" /> Processing...</> : <><span className="text-2xl">{network.icon}</span>Pay {network.fee} {network.symbol}</>}
               </button>
               <div className="grid grid-cols-2 gap-4">
@@ -462,7 +419,7 @@ export default function App() {
                   disabled={!isPaid}
                   className={`py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg ${isPaid ? `bg-gradient-to-r ${buttonGradient} text-white hover:shadow-lg hover:scale-105` : "bg-slate-700/60 text-slate-500 cursor-not-allowed"}`}
                 >
-                  <span className={`w-3 h-3 rounded-full shadow ${buttonLed} ${ledActive["card"] ? "ring-2 ring-white animate-pulse" : ""}`}></span>
+                  <span className={`w-3 h-3 rounded-full shadow ${buttonLed}`}></span>
                   <Download className="w-5 h-5" /> Card PNG
                 </button>
                 <button
@@ -470,7 +427,7 @@ export default function App() {
                   disabled={!isPaid}
                   className={`py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg ${isPaid ? `bg-gradient-to-r ${buttonGradient} text-white hover:shadow-lg hover:scale-105` : "bg-slate-700/60 text-slate-500 cursor-not-allowed"}`}
                 >
-                  <span className={`w-3 h-3 rounded-full shadow ${buttonLed} ${ledActive["meta"] ? "ring-2 ring-white animate-pulse" : ""}`}></span>
+                  <span className={`w-3 h-3 rounded-full shadow ${buttonLed}`}></span>
                   <Download className="w-5 h-5" /> Metadata
                 </button>
               </div>
