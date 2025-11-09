@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { Sparkles, Camera, Palette, Zap, Wallet, Download, Check, X, ChevronDown } from "lucide-react";
+import { Sparkles, Camera, Palette, Zap, Wallet, Download, Check, X, ChevronDown, Lock, Unlock } from "lucide-react";
 
 const RARITY_COLORS = {
   Common: "#9ca3af",
@@ -67,7 +67,9 @@ export default function App() {
       setTxHash(tx);
       setTxStatus("success");
       setIsPaid(true);
-      setTimeout(downloadCard, 1000);
+      setTimeout(() => {
+        alert("✅ Payment successful! Downloads unlocked.");
+      }, 500);
     } catch (err) {
       setTxStatus("failed");
       if (err.code === 4001) alert("❌ Transaction cancelled");
@@ -231,16 +233,17 @@ export default function App() {
             </div>
             <div className="rounded-xl p-3 bg-gray-900 border border-gray-800 w-full">
               <h3 className="text-yellow-400 font-bold mb-2 flex items-center gap-2 text-base">
-                <Download className="w-5 h-5" /> Mint & Export
+                {isPaid ? <Unlock className="w-5 h-5 text-green-400" /> : <Lock className="w-5 h-5 text-red-400" />}
+                {isPaid ? "Unlocked" : "Locked"}
               </h3>
-              <button onClick={mintWithPayment} disabled={txStatus === "pending"} className="w-full py-2 rounded-lg font-bold mb-2 flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white text-xs">
-                {txStatus === "pending" ? "Processing..." : `Pay ${network.fee} ${network.symbol} & Mint`}
+              <button onClick={mintWithPayment} disabled={txStatus === "pending" || isPaid} className={`w-full py-2 rounded-lg font-bold mb-2 flex items-center justify-center gap-2 ${isPaid ? "bg-gray-600" : "bg-green-500 hover:bg-green-600"} text-white text-xs`}>
+                {isPaid ? "Already Paid" : txStatus === "pending" ? "Processing..." : `Pay ${network.fee} ${network.symbol} & Mint`}
               </button>
               <div className="grid grid-cols-2 gap-2">
-                <button onClick={downloadCard} className="py-2 rounded-lg font-bold text-white flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 text-xs">
+                <button onClick={downloadCard} disabled={!isPaid} className={`py-2 rounded-lg font-bold flex items-center justify-center gap-2 text-xs ${isPaid ? "bg-blue-500 hover:bg-blue-600 text-white" : "bg-gray-700 text-gray-400 cursor-not-allowed"}`}>
                   <Download className="w-4 h-4" /> Card
                 </button>
-                <button onClick={downloadMetadata} className="py-2 rounded-lg font-bold text-white flex items-center justify-center gap-2 bg-purple-500 hover:bg-purple-600 text-xs">
+                <button onClick={downloadMetadata} disabled={!isPaid} className={`py-2 rounded-lg font-bold flex items-center justify-center gap-2 text-xs ${isPaid ? "bg-purple-500 hover:bg-purple-600 text-white" : "bg-gray-700 text-gray-400 cursor-not-allowed"}`}>
                   <Download className="w-4 h-4" /> JSON
                 </button>
               </div>
