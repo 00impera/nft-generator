@@ -53,11 +53,9 @@ function Led({ active, disabled, color = "#2563eb", glow = "rgba(37,99,235,0.7)"
   );
 }
 
-// Diamond logo with 4 pulsing LEDs and shine
 function DiamondLogo({ color, glow }) {
   return (
     <div className="relative flex items-center justify-center" style={{ width: 64, height: 64 }}>
-      {/* Diamond SVG */}
       <svg width="56" height="56" viewBox="0 0 56 56" className="z-10" style={{ filter: `drop-shadow(0 0 16px ${glow})` }}>
         <defs>
           <linearGradient id="diamond-grad" x1="0" y1="0" x2="1" y2="1">
@@ -71,18 +69,15 @@ function DiamondLogo({ color, glow }) {
           stroke={color}
           strokeWidth="2"
         />
-        {/* Shine */}
         <polygon
           points="28,8 46,20 40,48 16,48 10,20"
           fill="rgba(255,255,255,0.15)"
         />
       </svg>
-      {/* LED Corners */}
       <Led active color={color} glow={glow} delay="0s" style={{ position: "absolute", left: 0, top: 0 }} />
       <Led active color={color} glow={glow} delay="0.3s" style={{ position: "absolute", right: 0, top: 0 }} />
       <Led active color={color} glow={glow} delay="0.6s" style={{ position: "absolute", left: 0, bottom: 0 }} />
       <Led active color={color} glow={glow} delay="0.9s" style={{ position: "absolute", right: 0, bottom: 0 }} />
-      {/* Outer Glow */}
       <span
         className="absolute inset-0 rounded-full pointer-events-none"
         style={{
@@ -96,7 +91,6 @@ function DiamondLogo({ color, glow }) {
 }
 
 export default function App() {
-  // Visual/logic state
   const [media, setMedia] = useState(null);
   const [name, setName] = useState("Epic NFT");
   const [rarity, setRarity] = useState("Legendary");
@@ -110,10 +104,7 @@ export default function App() {
   const [mediaType, setMediaType] = useState("image");
   const [frames, setFrames] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [buttonTheme, setButtonTheme] = useState("blue");
-  // Holographic card tilt
   const [cardRotation, setCardRotation] = useState({ x: 0, y: 0 });
-  // Particle background
   const [particles] = useState(() =>
     Array.from({ length: 50 }, (_, i) => ({
       id: i,
@@ -133,7 +124,6 @@ export default function App() {
     return () => { document.body.style.overflowX = ""; };
   }, []);
 
-  // Holographic card tilt handlers
   const handleCardMouseMove = (e) => {
     const card = e.currentTarget;
     const rect = card.getBoundingClientRect();
@@ -147,7 +137,6 @@ export default function App() {
   };
   const handleCardMouseLeave = () => setCardRotation({ x: 0, y: 0 });
 
-  // Confetti
   const triggerConfetti = () => {
     const canvas = document.createElement("canvas");
     canvas.style.position = "fixed";
@@ -195,7 +184,6 @@ export default function App() {
     draw();
   };
 
-  // Main logic
   const mintWithPayment = async () => {
     if (!account) { alert("⚠️ Please connect your wallet first!"); return; }
     if (!media) { alert("⚠️ Upload media first!"); return; }
@@ -449,9 +437,73 @@ export default function App() {
           ))}
         </div>
 
-        {/* ...rest of your app (controls, NFT card, etc.) ... */}
-        {/* Use color and glow for all accent colors, LED, and button gradients */}
-        {/* ...copy the rest of your controls and NFT card from your previous App.jsx ... */}
+        {/* Main Content */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* Controls */}
+          <div className="space-y-6">
+            {/* Upload */}
+            <div className="bg-black rounded-2xl p-6 border-2 border-blue-500 shadow-xl" style={{ boxShadow: `0 0 20px ${glow}` }}>
+              <h3 className="font-bold mb-4 flex items-center gap-2 text-lg" style={{ color }}>
+                <Camera className="w-6 h-6" /> Upload Media
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="py-4 rounded-xl font-bold text-white bg-gradient-to-r border-2 shadow-lg flex items-center justify-center gap-2 hover:scale-105 transition"
+                  style={{
+                    background: `linear-gradient(90deg, ${color} 0%, #000 100%)`,
+                    boxShadow: `0 0 20px ${glow}`,
+                    borderColor: color
+                  }}
+                >
+                  <Led active={true} color={color} glow={glow} />
+                  <ImageIcon className="w-5 h-5" />Choose File
+                </button>
+                <button
+                  onClick={convertToGif}
+                  disabled={!media || mediaType === "gif" || isProcessing}
+                  className={`py-4 rounded-xl font-bold text-white bg-gradient-to-r border-2 shadow-lg flex items-center justify-center gap-2 transition ${(!media || mediaType === "gif" || isProcessing) ? "opacity-50 cursor-not-allowed" : "hover:scale-105"}`}
+                  style={{
+                    background: `linear-gradient(90deg, ${color} 0%, #000 100%)`,
+                    boxShadow: `0 0 20px ${glow}`,
+                    borderColor: color
+                  }}
+                >
+                  <Led active={ledActive(!(!media || mediaType === "gif" || isProcessing), isProcessing)} disabled={!media || mediaType === "gif" || isProcessing} color={color} glow={glow} />
+                  {isProcessing ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Film className="w-5 h-5" />}
+                  {isProcessing ? "Processing..." : "To GIF"}
+                </button>
+              </div>
+              <input ref={fileInputRef} type="file" accept="image/*,image/gif" onChange={handleMediaUpload} className="hidden" />
+              {media && (
+                <div className="mt-5 p-4 rounded-2xl bg-gradient-to-r from-blue-500/20 to-blue-700/20 border-2 border-blue-500/40 flex items-center gap-3">
+                  <Check className="w-6 h-6 text-blue-400" />
+                  <span className="text-blue-300 font-semibold">{mediaType === "gif" ? "✨ Animated GIF ready!" : "📸 Image uploaded!"}</span>
+                </div>
+              )}
+            </div>
+            {/* ...repeat the same color/glow logic for all other buttons and LEDs in your controls... */}
+          </div>
+
+          {/* NFT Card Preview */}
+          <div className="flex justify-center items-start">
+            <div
+              className="rounded-3xl overflow-hidden w-full max-w-md shadow-2xl"
+              style={{
+                border: `4px solid ${color}`,
+                boxShadow: `0 0 50px ${glow}, 0 0 100px ${glow}`,
+                background: "linear-gradient(135deg, #7c3aed 0%, #22d3ee 100%)",
+                transform: `perspective(900px) rotateX(${cardRotation.x}deg) rotateY(${cardRotation.y}deg)`,
+                transition: "transform 0.2s cubic-bezier(.25,.8,.25,1)"
+              }}
+              onMouseMove={handleCardMouseMove}
+              onMouseLeave={handleCardMouseLeave}
+            >
+              {/* ...rest of your NFT card preview... */}
+            </div>
+          </div>
+        </div>
+        <canvas ref={canvasRef} className="hidden" />
       </div>
       <style>{`
         @keyframes led-pulse {
