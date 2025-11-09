@@ -1,0 +1,12 @@
+{
+  "frame": {
+    "version": "1",
+    "name": "Luxury NFT Generator",
+    "iconUrl": "https://00impera.github.io/nft-generator/android-chrome-512x512.png",
+    "homeUrl": "https://00impera.github.io/nft-generator",
+    "imageUrl": "https://00impera.github.io/nft-generator/android-chrome-512x512.png",
+    "buttonTitle": "Create NFT",
+    "splashImageUrl": "https://00impera.github.io/nft-generator/android-chrome-512x512.png",
+    "splashBackgroundColor": "#000000"
+  }
+}
