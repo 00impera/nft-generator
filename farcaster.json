@@ -1,22 +1,12 @@
 {
-  "name": "Luxury NFT Generator",
-  "iconUrl": "https://00impera.github.io/nft-generator/android-chrome-512x512.png",
-  "subtitle": "Mint luxury NFT cards instantly",
-  "description": "Create and mint luxury NFT cards with MetaMask payment and instant download.",
-  "primaryCategory": "collectibles",
-  "screenshotUrls": [
-    "https://00impera.github.io/nft-generator/android-chrome-512x512.png"
-  ],
-  "imageUrl": "https://00impera.github.io/nft-generator/android-chrome-512x512.png",
-  "heroImageUrl": "https://00impera.github.io/nft-generator/android-chrome-512x512.png",
-  "splashImageUrl": "https://00impera.github.io/nft-generator/android-chrome-512x512.png",
-  "splashBackgroundColor": "#181818",
-  "tags": ["nft", "collectibles", "art", "mint", "crypto"],
-  "tagline": "Mint, Download & Show Off Your NFT",
-  "buttonTitle": "Open NFT Generator",
-  "ogTitle": "Luxury NFT Generator – Mint Instantly",
-  "ogDescription": "Create and mint luxury NFT cards with MetaMask payment and instant download.",
-  "ogImageUrl": "https://00impera.github.io/nft-generator/android-chrome-512x512.png",
-  "castShareUrl": "https://warpcast.com/~/compose?text=Check+out+this+NFT+generator:+https://00impera.github.io/nft-generator/",
-  "homeUrl": "https://00impera.github.io/nft-generator/"
+  "frame": {
+    "version": "1",
+    "name": "Luxury NFT Generator",
+    "iconUrl": "https://00impera.github.io/nft-generator/android-chrome-512x512.png",
+    "homeUrl": "https://00impera.github.io/nft-generator",
+    "imageUrl": "https://00impera.github.io/nft-generator/android-chrome-512x512.png",
+    "buttonTitle": "Create NFT",
+    "splashImageUrl": "https://00impera.github.io/nft-generator/android-chrome-512x512.png",
+    "splashBackgroundColor": "#000000"
+  }
 }
