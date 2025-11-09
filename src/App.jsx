@@ -1,460 +1,290 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Upload, Download, Sparkles, Film, Zap, Camera, Palette, Wallet, X, Check, Network } from 'lucide-react';
+import React, { useState, useRef } from "react";
+import { Sparkles, Camera, Palette, Zap, Wallet, Download, Check } from "lucide-react";
 
-const NETWORKS = {
-  eth: { name: 'Ethereum', chainId: '0x1', symbol: 'ETH', fee: '0.001', color: '#627EEA' },
-  bsc: { name: 'BSC', chainId: '0x38', symbol: 'BNB', fee: '0.003', color: '#F3BA2F' },
-  polygon: { name: 'Polygon', chainId: '0x89', symbol: 'MATIC', fee: '1.0', color: '#8247E5' },
-  base: { name: 'Base', chainId: '0x2105', symbol: 'ETH', fee: '0.0005', color: '#0052FF' }
+const RARITY_COLORS = {
+  Common: "#b0b0b0",
+  Rare: "#3b82f6",
+  Epic: "#a21caf",
+  Legendary: "#f59e42",
+  Mythic: "linear-gradient(90deg,#f43f5e,#f59e42,#fbbf24,#10b981,#3b82f6,#a21caf,#f43f5e)"
 };
 
-const TREASURY = '0x592B35c8917eD36c39Ef73D0F5e92B0173560b2e';
+const NETWORK = {
+  name: "Ethereum",
+  chainId: "0x1",
+  symbol: "ETH",
+  fee: "0.001",
+  color: "#627EEA"
+};
+const TREASURY = "0x592B35c8917eD36c39Ef73D0F5e92B0173560b2e";
 
-const NFTCardGenerator = () => {
+export default function App() {
   const [media, setMedia] = useState(null);
-  const [mediaType, setMediaType] = useState(null);
-  const [name, setName] = useState('Epic NFT');
-  const [rarity, setRarity] = useState('Legendary');
+  const [name, setName] = useState("Epic NFT");
+  const [rarity, setRarity] = useState("Mythic");
   const [stats, setStats] = useState({ attack: 85, defense: 70, speed: 90, magic: 75 });
-  const [chain, setChain] = useState('eth');
-  const [color, setColor] = useState('#00ffff');
-  const [isConverting, setIsConverting] = useState(false);
+  const [color, setColor] = useState("#00ffff");
   const [wallet, setWallet] = useState(null);
   const [provider, setProvider] = useState(null);
-  const [showWallet, setShowWallet] = useState(false);
-  const [showNetwork, setShowNetwork] = useState(false);
   const [txStatus, setTxStatus] = useState(null);
+  const [txHash, setTxHash] = useState(null);
+  const [isPaid, setIsPaid] = useState(false);
   const fileInputRef = useRef();
   const canvasRef = useRef();
 
-  useEffect(() => { checkWallet(); }, []);
-
-  const checkWallet = async () => {
+  // Connect MetaMask
+  const connectWallet = async () => {
     try {
-      const p = window.ethereum || window.trustwallet;
-      if (p) {
-        const accounts = await p.request({ method: 'eth_accounts' });
-        if (accounts[0]) {
-          setWallet(accounts[0]);
-          setProvider(p);
-        }
-      }
-    } catch (err) { console.error(err); }
-  };
-
-  const connectWallet = async (type) => {
-    try {
-      let p = window.ethereum;
-      if (type === 'trust' && window.trustwallet) p = window.trustwallet;
-      if (window.ethereum?.providers) {
-        if (type === 'metamask') p = window.ethereum.providers.find(x => x.isMetaMask);
-        if (type === 'coinbase') p = window.ethereum.providers.find(x => x.isCoinbaseWallet);
-      }
-      const accounts = await p.request({ method: 'eth_requestAccounts' });
+      const p = window.ethereum;
+      if (!p) return alert("Please install MetaMask!");
+      const accounts = await p.request({ method: "eth_requestAccounts" });
       setWallet(accounts[0]);
       setProvider(p);
-      setShowWallet(false);
     } catch (err) {
-      alert('Connection failed: ' + err.message);
+      alert("Connection failed: " + err.message);
     }
   };
 
-  const switchNetwork = async (net) => {
-    try {
-      await provider.request({
-        method: 'wallet_switchEthereumChain',
-        params: [{ chainId: NETWORKS[net].chainId }]
-      });
-      setChain(net);
-      setShowNetwork(false);
-    } catch (err) {
-      if (err.code === 4902) {
-        alert('Please add this network to your wallet first');
-      }
-    }
-  };
-
+  // Payment and Mint
   const mintWithPayment = async () => {
-    if (!wallet) { setShowWallet(true); return; }
-    if (!media) { alert('Upload image first!'); return; }
+    if (!wallet) return connectWallet();
+    if (!media) return alert("Upload an image first!");
     try {
-      setTxStatus('pending');
-      const net = NETWORKS[chain];
-      const value = '0x' + BigInt(Math.floor(parseFloat(net.fee) * 1e18)).toString(16);
+      setTxStatus("pending");
+      const value = "0x" + BigInt(Math.floor(parseFloat(NETWORK.fee) * 1e18)).toString(16);
       const tx = await provider.request({
-        method: 'eth_sendTransaction',
-        params: [{ from: wallet, to: TREASURY, value, gas: '0x5208' }]
+        method: "eth_sendTransaction",
+        params: [{ from: wallet, to: TREASURY, value, gas: "0x5208" }]
       });
-      setTxStatus('success');
-      alert('✅ Payment successful! Downloading card...');
+      setTxHash(tx);
+      setTxStatus("success");
+      setIsPaid(true);
       setTimeout(downloadCard, 1000);
     } catch (err) {
-      setTxStatus('failed');
-      if (err.code === 4001) {
-        alert('❌ Transaction cancelled');
-      } else if (err.message?.includes('insufficient')) {
-        alert(`💰 Insufficient funds. Need ${NETWORKS[chain].fee} ${NETWORKS[chain].symbol}`);
-      } else {
-        alert('❌ Transaction failed: ' + err.message);
-      }
+      setTxStatus("failed");
+      if (err.code === 4001) alert("❌ Transaction cancelled");
+      else if (err.message?.includes("insufficient")) alert(`💰 Need ${NETWORK.fee} ${NETWORK.symbol}`);
+      else alert("❌ Transaction failed: " + err.message);
     }
   };
 
+  // Upload
   const handleMediaUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      setMedia(ev.target.result);
-      setMediaType(file.type.startsWith('image/') ? 'image' : 'video');
-    };
+    reader.onload = (ev) => setMedia(ev.target.result);
     reader.readAsDataURL(file);
   };
 
-  const convertToGif = async () => {
-    if (!media || mediaType !== 'image') return;
-    setIsConverting(true);
-    setTimeout(() => {
-      alert('GIF conversion ready! Use gif.js library for production.');
-      setMediaType('gif');
-      setIsConverting(false);
-    }, 1000);
-  };
-
-  const randomizeStats = () => {
-    setStats({
-      attack: Math.floor(Math.random() * 100),
-      defense: Math.floor(Math.random() * 100),
-      speed: Math.floor(Math.random() * 100),
-      magic: Math.floor(Math.random() * 100)
-    });
-  };
-
+  // Download Metadata
   const downloadMetadata = () => {
     const metadata = {
       name,
-      description: `${rarity} NFT on ${NETWORKS[chain].name}`,
+      description: `${rarity} NFT on ${NETWORK.name}`,
       image: media || "ipfs://...",
       attributes: [
-        { trait_type: 'Rarity', value: rarity },
-        { trait_type: 'Chain', value: NETWORKS[chain].name },
-        { trait_type: 'Attack', value: stats.attack },
-        { trait_type: 'Defense', value: stats.defense },
-        { trait_type: 'Speed', value: stats.speed },
-        { trait_type: 'Magic', value: stats.magic }
-      ]
+        { trait_type: "Rarity", value: rarity },
+        { trait_type: "Attack", value: stats.attack },
+        { trait_type: "Defense", value: stats.defense },
+        { trait_type: "Speed", value: stats.speed },
+        { trait_type: "Magic", value: stats.magic }
+      ],
+      transaction: txHash
     };
-    const blob = new Blob([JSON.stringify(metadata, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(metadata, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    a.download = 'nft-metadata.json';
+    a.download = `${name.replace(/\s+/g, "_")}_metadata.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
+  // Download Card
   const downloadCard = () => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     canvas.width = 400;
     canvas.height = 600;
-    const gradient = ctx.createLinearGradient(0, 0, 0, 600);
-    gradient.addColorStop(0, color);
-    gradient.addColorStop(1, '#1a1a2e');
-    ctx.fillStyle = gradient;
+    // BG
+    ctx.fillStyle = color;
     ctx.fillRect(0, 0, 400, 600);
+    ctx.fillStyle = "#1a1a2e";
+    ctx.fillRect(0, 300, 400, 300);
+    // Border
     ctx.strokeStyle = color;
-    ctx.lineWidth = 4;
-    ctx.shadowBlur = 20;
-    ctx.shadowColor = color;
-    ctx.strokeRect(10, 10, 380, 580);
-    if (media && (mediaType === 'image' || mediaType === 'gif')) {
+    ctx.lineWidth = 6;
+    ctx.strokeRect(6, 6, 388, 588);
+    // Image
+    if (media) {
       const img = new window.Image();
       img.onload = () => {
-        ctx.drawImage(img, 30, 30, 340, 340);
+        ctx.drawImage(img, 30, 30, 340, 240);
         drawText();
       };
       img.src = media;
-    } else {
-      drawText();
-    }
+    } else drawText();
     function drawText() {
-      ctx.shadowBlur = 0;
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 28px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText(name, 200, 410);
-      ctx.font = '16px Arial';
+      // Name
+      ctx.font = "bold 28px Arial";
+      ctx.fillStyle = "#fff";
+      ctx.textAlign = "center";
+      ctx.fillText(name, 200, 300);
+      // Rarity
+      ctx.font = "bold 20px Arial";
+      if (rarity === "Mythic") {
+        const grad = ctx.createLinearGradient(100, 0, 300, 0);
+        grad.addColorStop(0, "#f43f5e");
+        grad.addColorStop(0.2, "#f59e42");
+        grad.addColorStop(0.4, "#fbbf24");
+        grad.addColorStop(0.6, "#10b981");
+        grad.addColorStop(0.8, "#3b82f6");
+        grad.addColorStop(1, "#a21caf");
+        ctx.fillStyle = grad;
+      } else ctx.fillStyle = RARITY_COLORS[rarity];
+      ctx.fillText(rarity, 200, 335);
+      // Stats
+      ctx.font = "16px Arial";
+      ctx.fillStyle = "#fff";
+      ctx.fillText(`⚔️${stats.attack} 🛡️${stats.defense}`, 200, 370);
+      ctx.fillText(`⚡${stats.speed} ✨${stats.magic}`, 200, 395);
+      ctx.font = "14px Arial";
       ctx.fillStyle = color;
-      ctx.fillText(rarity, 200, 440);
-      ctx.font = '14px Arial';
-      ctx.fillStyle = '#ffffff';
-      ctx.fillText(`⚔️${stats.attack} 🛡️${stats.defense}`, 200, 480);
-      ctx.fillText(`⚡${stats.speed} ✨${stats.magic}`, 200, 505);
-      ctx.fillText(`${NETWORKS[chain].name}`, 200, 560);
-      const link = document.createElement('a');
-      link.download = 'nft-card.png';
-      link.href = canvas.toDataURL();
+      ctx.fillText(`${NETWORK.name}`, 200, 570);
+      // Download
+      const link = document.createElement("a");
+      link.download = `${name.replace(/\s+/g, "_")}_card.png`;
+      link.href = canvas.toDataURL("image/png");
       link.click();
     }
   };
 
-  const net = NETWORKS[chain];
+  // Randomize
+  const randomizeStats = () => setStats({
+    attack: Math.floor(Math.random() * 100),
+    defense: Math.floor(Math.random() * 100),
+    speed: Math.floor(Math.random() * 100),
+    magic: Math.floor(Math.random() * 100)
+  });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 p-3">
-      {/* Wallet Connect Modal */}
-      {showWallet && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 transition-all">
-          <div className="bg-[#181828] border-2 border-cyan-500 rounded-2xl p-8 max-w-xs w-full shadow-2xl">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <Wallet className="w-5 h-5 text-cyan-400" />
-                Connect Wallet
-              </h2>
-              <button onClick={() => setShowWallet(false)} className="text-gray-400 hover:text-white">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="space-y-3">
-              <button onClick={() => connectWallet('metamask')} className="w-full bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2">
-                🦊 MetaMask
-              </button>
-              <button onClick={() => connectWallet('trust')} className="w-full bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2">
-                💙 Trust Wallet
-              </button>
-              <button onClick={() => connectWallet('coinbase')} className="w-full bg-gradient-to-r from-indigo-600 to-purple-700 hover:from-indigo-700 hover:to-purple-800 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2">
-                🔷 Coinbase
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Network Selector Modal */}
-      {showNetwork && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 transition-all">
-          <div className="bg-[#181828] border-2 border-purple-500 rounded-2xl p-8 max-w-xs w-full shadow-2xl">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <Network className="w-5 h-5 text-purple-400" />
-                Select Network
-              </h2>
-              <button onClick={() => setShowNetwork(false)} className="text-gray-400 hover:text-white">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="space-y-3">
-              {Object.entries(NETWORKS).map(([key, n]) => (
-                <button
-                  key={key}
-                  onClick={() => switchNetwork(key)}
-                  className="w-full text-white font-bold py-3 rounded-lg flex items-center justify-between"
-                  style={{ background: n.color }}
-                >
-                  <span>{n.name}</span>
-                  <span className="text-xs opacity-80">{n.fee} {n.symbol}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="max-w-5xl mx-auto">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-3">
-          <div className="text-center md:text-left">
-            <h1 className="text-2xl md:text-3xl font-bold text-white flex items-center justify-center md:justify-start gap-2">
-              <Sparkles className="w-6 h-6 text-cyan-400" />
-              NFT Card Generator
-            </h1>
-            <p className="text-gray-400 text-xs">Multi-chain • {net.fee} {net.symbol}</p>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 p-4">
+      <div className="max-w-4xl mx-auto">
+        <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-2">
+          <h1 className="text-3xl font-bold text-white flex items-center gap-2">
+            <Sparkles className="w-8 h-8 text-cyan-400" />
+            NFT Card Generator
+          </h1>
           <div className="flex gap-2">
-            <button
-              onClick={() => setShowNetwork(true)}
-              className="px-3 py-1.5 rounded-lg font-bold text-white flex items-center gap-1 text-xs"
-              style={{ background: net.color }}
-            >
-              <Network className="w-3 h-3" />
-              {net.name}
-            </button>
             {wallet ? (
-              <div className="bg-black/50 rounded-lg px-3 py-1.5 border border-green-500/50">
-                <span className="text-white text-xs">{wallet.substring(0, 6)}...{wallet.substring(38)}</span>
+              <div className="bg-green-900 px-4 py-2 rounded-lg border-2 border-green-500 text-white text-sm flex items-center gap-2">
+                <Check className="w-4 h-4 text-green-400" />
+                {wallet.slice(0, 6)}...{wallet.slice(-4)}
               </div>
             ) : (
-              <button
-                onClick={() => setShowWallet(true)}
-                className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white font-bold py-1.5 px-3 rounded-lg flex items-center gap-1 text-xs"
-              >
-                <Wallet className="w-3 h-3" />
-                Connect
+              <button onClick={connectWallet} className="bg-cyan-500 px-4 py-2 rounded-lg text-white font-bold flex items-center gap-2">
+                <Wallet className="w-5 h-5" />
+                Connect MetaMask
               </button>
             )}
           </div>
         </div>
-
-        <div className="grid md:grid-cols-2 gap-4">
+        <div className="grid md:grid-cols-2 gap-6">
           {/* Controls */}
-          <div className="space-y-3">
+          <div className="space-y-4">
             {/* Upload */}
-            <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700">
-              <h3 className="text-white font-semibold mb-2 flex items-center gap-2 text-sm">
-                <Upload className="w-4 h-4" />
-                Media
+            <div className="bg-gray-800 rounded-xl p-4 border-2 border-gray-700">
+              <h3 className="text-white font-bold mb-3 flex items-center gap-2">
+                <Camera className="w-5 h-5" /> Upload Image
               </h3>
-              <input ref={fileInputRef} type="file" accept="image/*,video/*" onChange={handleMediaUpload} className="hidden" />
-              <button onClick={() => fileInputRef.current?.click()} className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white py-2 rounded-lg hover:from-cyan-600 hover:to-blue-600 text-sm font-semibold flex items-center justify-center gap-2">
-                <Camera className="w-4 h-4" />
+              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleMediaUpload} className="hidden" />
+              <button onClick={() => fileInputRef.current?.click()} className="w-full bg-cyan-500 text-white py-3 rounded-lg font-bold">
                 Choose File
               </button>
-              {media && mediaType === 'image' && (
-                <button onClick={convertToGif} disabled={isConverting} className="w-full mt-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white py-2 rounded-lg hover:from-purple-600 hover:to-pink-600 text-xs font-semibold flex items-center justify-center gap-1 disabled:opacity-50">
-                  <Film className="w-3 h-3" />
-                  {isConverting ? 'Converting...' : 'Convert to GIF'}
-                </button>
+              {media && (
+                <div className="mt-2 p-2 bg-green-900 border border-green-500 rounded text-green-400 text-sm flex items-center gap-2">
+                  <Check className="w-4 h-4" />
+                  Image uploaded!
+                </div>
               )}
             </div>
-
             {/* Details */}
-            <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700">
-              <h3 className="text-white font-semibold mb-2 text-sm">Details</h3>
-              <div className="space-y-2">
-                <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-gray-700 text-white px-2 py-1.5 rounded border border-gray-600 focus:border-cyan-500 focus:outline-none text-xs" placeholder="Name" />
-                <div className="grid grid-cols-2 gap-2">
-                  <select value={rarity} onChange={(e) => setRarity(e.target.value)} className="w-full bg-gray-700 text-white px-2 py-1.5 rounded border border-gray-600 text-xs">
-                    <option>Common</option>
-                    <option>Rare</option>
-                    <option>Epic</option>
-                    <option>Legendary</option>
-                    <option>Mythic</option>
-                  </select>
-                  <div className="flex items-center gap-1">
-                    <Palette className="w-3 h-3 text-gray-400" />
-                    <input type="color" value={color} onChange={(e) => setColor(e.target.value)} className="flex-1 h-7 bg-gray-700 rounded border border-gray-600 cursor-pointer" />
-                  </div>
+            <div className="bg-gray-800 rounded-xl p-4 border-2 border-gray-700">
+              <h3 className="text-white font-bold mb-3">Details</h3>
+              <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg mb-3" placeholder="NFT Name" />
+              <div className="grid grid-cols-2 gap-3">
+                <select value={rarity} onChange={e => setRarity(e.target.value)} className="bg-gray-700 text-white px-3 py-2 rounded-lg font-bold" style={rarity === "Mythic" ? { background: "linear-gradient(90deg,#f43f5e,#f59e42,#fbbf24,#10b981,#3b82f6,#a21caf,#f43f5e)", color: "#fff" } : { color: RARITY_COLORS[rarity] }}>
+                  {Object.keys(RARITY_COLORS).map(r => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </select>
+                <div className="flex items-center gap-2 bg-gray-700 px-3 rounded-lg">
+                  <Palette className="w-4 h-4 text-gray-400" />
+                  <input type="color" value={color} onChange={e => setColor(e.target.value)} className="flex-1" />
                 </div>
               </div>
             </div>
-
             {/* Stats */}
-            <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-white font-semibold text-sm">Stats</h3>
-                <button onClick={randomizeStats} className="text-cyan-400 hover:text-cyan-300 text-xs flex items-center gap-1">
-                  <Zap className="w-3 h-3" />
-                  Random
+            <div className="bg-gray-800 rounded-xl p-4 border-2 border-gray-700">
+              <div className="flex justify-between mb-3">
+                <h3 className="text-white font-bold">Stats</h3>
+                <button onClick={randomizeStats} className="text-cyan-400 text-sm flex items-center gap-1">
+                  <Zap className="w-4 h-4" /> Random
                 </button>
               </div>
-              <div className="space-y-1.5">
-                {Object.entries(stats).map(([key, value]) => (
-                  <div key={key}>
-                    <div className="flex justify-between text-xs mb-0.5">
-                      <span className="text-gray-400 capitalize">{key}</span>
-                      <span className="text-white">{value}</span>
-                    </div>
-                    <input type="range" min="0" max="100" value={value} onChange={(e) => setStats({ ...stats, [key]: parseInt(e.target.value) })} className="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer" style={{ accentColor: color }} />
+              {Object.entries(stats).map(([key, value]) => (
+                <div key={key} className="mb-2">
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="text-gray-300 capitalize">{key}</span>
+                    <span className="text-white font-bold">{value}</span>
                   </div>
-                ))}
-              </div>
+                  <input type="range" min="0" max="100" value={value} onChange={e => setStats({ ...stats, [key]: parseInt(e.target.value) })} className="w-full" style={{ accentColor: color }} />
+                </div>
+              ))}
             </div>
-
             {/* Payment & Download */}
-            <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700">
-              <h3 className="text-white font-semibold mb-2 text-sm flex items-center gap-2">
-                <Wallet className="w-4 h-4" />
-                Mint & Download
+            <div className="bg-gray-800 rounded-xl p-4 border-2 border-gray-700">
+              <h3 className="text-white font-bold mb-3 flex items-center gap-2">
+                <Wallet className="w-5 h-5" /> Mint & Download
               </h3>
-              
-              {txStatus === 'success' && (
-                <div className="mb-2 p-2 bg-green-500/20 border border-green-500 rounded-lg">
-                  <div className="flex items-center gap-2 text-green-400 text-xs">
-                    <Check className="w-3 h-3" />
-                    <span>Payment successful!</span>
-                  </div>
-                </div>
-              )}
-
-              {txStatus === 'failed' && (
-                <div className="mb-2 p-2 bg-red-500/20 border border-red-500 rounded-lg">
-                  <div className="flex items-center gap-2 text-red-400 text-xs">
-                    <X className="w-3 h-3" />
-                    <span>Payment failed</span>
-                  </div>
-                </div>
-              )}
-
-              <button
-                onClick={mintWithPayment}
-                disabled={txStatus === 'pending'}
-                className={`w-full text-white font-bold py-2 rounded-lg flex items-center justify-center gap-2 text-sm mb-2 ${txStatus === 'pending' ? 'bg-gray-600 cursor-not-allowed' : 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600'}`}
-              >
-                {txStatus === 'pending' ? (
-                  <>
-                    <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <Wallet className="w-4 h-4" />
-                    Pay {net.fee} {net.symbol}
-                  </>
-                )}
+              <button onClick={mintWithPayment} disabled={txStatus === "pending"} className={`w-full py-3 rounded-lg font-bold mb-3 ${txStatus === "pending" ? "bg-gray-600" : "bg-green-500"} text-white flex items-center justify-center gap-2`}>
+                {txStatus === "pending" ? "Processing..." : `Pay ${NETWORK.fee} ${NETWORK.symbol} & Mint`}
               </button>
-
               <div className="grid grid-cols-2 gap-2">
-                <button onClick={downloadCard} className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white py-2 rounded-lg hover:from-blue-600 hover:to-indigo-600 text-xs font-semibold flex items-center justify-center gap-1">
-                  <Download className="w-3 h-3" />
-                  Card
+                <button onClick={downloadCard} className="py-3 rounded-lg font-bold bg-blue-500 text-white flex items-center justify-center gap-2">
+                  <Download className="w-4 h-4" /> Card
                 </button>
-                <button onClick={downloadMetadata} className="bg-gradient-to-r from-purple-500 to-pink-500 text-white py-2 rounded-lg hover:from-purple-600 hover:to-pink-600 text-xs font-semibold flex items-center justify-center gap-1">
-                  <Download className="w-3 h-3" />
-                  JSON
+                <button onClick={downloadMetadata} className="py-3 rounded-lg font-bold bg-purple-500 text-white flex items-center justify-center gap-2">
+                  <Download className="w-4 h-4" /> JSON
                 </button>
               </div>
             </div>
           </div>
-
           {/* Preview */}
-          <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
-            <h3 className="text-white font-semibold mb-3 text-sm">Preview</h3>
-            <div className="relative rounded-lg overflow-hidden" style={{ background: `linear-gradient(135deg, ${color}40, #1a1a2e)`, border: `2px solid ${color}`, boxShadow: `0 0 20px ${color}40` }}>
-              <div className="aspect-square bg-gray-900/50 flex items-center justify-center">
+          <div className="bg-gray-800 rounded-xl p-4 border-2 border-gray-700">
+            <h3 className="text-white font-bold mb-4">Preview</h3>
+            <div className="rounded-xl overflow-hidden" style={{ border: `3px solid ${color}`, boxShadow: `0 0 30px ${color}60` }}>
+              <div className="aspect-[2/3] bg-gray-900 flex items-center justify-center" style={{ width: "200px", height: "300px" }}>
                 {media ? (
-                  (mediaType === 'image' || mediaType === 'gif') ? (
-                    <img src={media} alt="NFT" className="w-full h-full object-cover" />
-                  ) : mediaType === 'video' ? (
-                    <video src={media} className="w-full h-full object-cover" controls />
-                  ) : null
+                  <img src={media} alt="NFT" className="w-full h-full object-cover" />
                 ) : (
                   <Camera className="w-16 h-16 text-gray-600" />
                 )}
               </div>
-              <div className="p-3 bg-gradient-to-t from-black/80 to-transparent">
-                <h2 className="text-white text-lg font-bold mb-0.5">{name}</h2>
-                <p className="text-xs mb-2" style={{ color }}>
-                  {rarity} • {net.name}
-                </p>
-                <div className="grid grid-cols-2 gap-1.5 text-xs">
-                  <div className="bg-black/40 rounded px-2 py-1.5">
-                    <span className="text-gray-400">⚔️:</span>
-                    <span className="text-white ml-1 font-semibold">{stats.attack}</span>
-                  </div>
-                  <div className="bg-black/40 rounded px-2 py-1.5">
-                    <span className="text-gray-400">🛡️:</span>
-                    <span className="text-white ml-1 font-semibold">{stats.defense}</span>
-                  </div>
-                  <div className="bg-black/40 rounded px-2 py-1.5">
-                    <span className="text-gray-400">⚡:</span>
-                    <span className="text-white ml-1 font-semibold">{stats.speed}</span>
-                  </div>
-                  <div className="bg-black/40 rounded px-2 py-1.5">
-                    <span className="text-gray-400">✨:</span>
-                    <span className="text-white ml-1 font-semibold">{stats.magic}</span>
-                  </div>
+              <div className="p-4 bg-gradient-to-t from-black to-transparent">
+                <h2 className="text-white text-xl font-bold">{name}</h2>
+                <span className="text-xs font-bold px-2 py-1 rounded" style={rarity === "Mythic"
+                  ? { background: "linear-gradient(90deg,#f43f5e,#f59e42,#fbbf24,#10b981,#3b82f6,#a21caf,#f43f5e)", color: "#fff" }
+                  : { background: RARITY_COLORS[rarity], color: "#fff" }
+                }>
+                  {rarity}
+                </span>
+                <div className="grid grid-cols-2 gap-2 text-sm mt-2">
+                  <div className="bg-black/40 rounded px-2 py-1">⚔️ {stats.attack}</div>
+                  <div className="bg-black/40 rounded px-2 py-1">🛡️ {stats.defense}</div>
+                  <div className="bg-black/40 rounded px-2 py-1">⚡ {stats.speed}</div>
+                  <div className="bg-black/40 rounded px-2 py-1">✨ {stats.magic}</div>
                 </div>
               </div>
             </div>
@@ -464,6 +294,4 @@ const NFTCardGenerator = () => {
       <canvas ref={canvasRef} className="hidden" />
     </div>
   );
-};
-
-export default NFTCardGenerator;
+}
