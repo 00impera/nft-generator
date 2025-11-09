@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Sparkles, Camera, Palette, Zap, Wallet, Download, Check, X, ChevronDown, Lock, Unlock } from "lucide-react";
 
 const RARITY_COLORS = {
@@ -33,13 +33,20 @@ export default function App() {
   const canvasRef = useRef();
 
   // Prevent horizontal scroll
-  React.useEffect(() => {
+  useEffect(() => {
     document.body.style.overflowX = "hidden";
     document.documentElement.style.overflowX = "hidden";
     return () => {
       document.body.style.overflowX = "";
       document.documentElement.style.overflowX = "";
     };
+  }, []);
+
+  // Hide Farcaster splash screen when ready
+  useEffect(() => {
+    if (window.farcaster && typeof window.farcaster.ready === "function") {
+      window.farcaster.ready();
+    }
   }, []);
 
   const connectWallet = async () => {
