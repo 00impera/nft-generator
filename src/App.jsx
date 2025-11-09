@@ -40,6 +40,16 @@ export default function App() {
   const fileInputRef = useRef();
   const canvasRef = useRef();
 
+  // Prevent horizontal scroll on all screens
+  React.useEffect(() => {
+    document.body.style.overflowX = "hidden";
+    document.documentElement.style.overflowX = "hidden";
+    return () => {
+      document.body.style.overflowX = "";
+      document.documentElement.style.overflowX = "";
+    };
+  }, []);
+
   const connectWallet = async (walletType) => {
     try {
       const p = window.ethereum;
@@ -176,15 +186,15 @@ export default function App() {
   });
 
   return (
-    <div className="min-h-screen bg-black p-2 md:p-4 overflow-x-hidden" style={{ backgroundImage: "radial-gradient(circle at 50% 50%, #1a1a1a 0%, #000 100%)" }}>
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-black p-2 md:p-4 overflow-x-hidden w-full" style={{ backgroundImage: "radial-gradient(circle at 50% 50%, #1a1a1a 0%, #000 100%)" }}>
+      <div className="max-w-6xl mx-auto w-full">
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-center mb-4 md:mb-8 gap-2 md:gap-4 flex-wrap">
-          <h1 className="text-2xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-yellow-200 to-yellow-400 flex items-center gap-2 md:gap-3">
+        <div className="flex flex-col md:flex-row justify-between items-center mb-4 md:mb-8 gap-2 md:gap-4 flex-wrap w-full">
+          <h1 className="text-2xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-yellow-200 to-yellow-400 flex items-center gap-2 md:gap-3 w-full md:w-auto text-center md:text-left">
             <Sparkles className="w-8 h-8 md:w-10 md:h-10 text-yellow-400" style={{ filter: "drop-shadow(0 0 10px #d4af37)" }} />
             Luxury NFT Generator
           </h1>
-          <div className="flex gap-2 md:gap-3 flex-wrap">
+          <div className="flex gap-2 md:gap-3 flex-wrap w-full md:w-auto justify-center md:justify-end">
             <button 
               onClick={() => setShowNetworkModal(true)}
               className="px-3 py-1.5 md:px-4 md:py-2 rounded-lg font-semibold text-white flex items-center gap-2 transition-all text-xs md:text-base"
@@ -226,12 +236,12 @@ export default function App() {
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-4 md:gap-6">
+        <div className="grid lg:grid-cols-2 gap-4 md:gap-6 w-full">
           {/* Left Panel */}
-          <div className="space-y-3 md:space-y-5">
+          <div className="space-y-3 md:space-y-5 w-full">
             {/* Upload */}
             <div 
-              className="rounded-xl p-3 md:p-5"
+              className="rounded-xl p-3 md:p-5 w-full"
               style={{ 
                 background: "linear-gradient(135deg, #1a1a1a, #0a0a0a)",
                 border: "1px solid #333",
@@ -262,7 +272,7 @@ export default function App() {
 
             {/* Details */}
             <div 
-              className="rounded-xl p-3 md:p-5"
+              className="rounded-xl p-3 md:p-5 w-full"
               style={{ 
                 background: "linear-gradient(135deg, #1a1a1a, #0a0a0a)",
                 border: "1px solid #333",
@@ -301,7 +311,7 @@ export default function App() {
 
             {/* Stats */}
             <div 
-              className="rounded-xl p-3 md:p-5"
+              className="rounded-xl p-3 md:p-5 w-full"
               style={{ 
                 background: "linear-gradient(135deg, #1a1a1a, #0a0a0a)",
                 border: "1px solid #333",
@@ -340,7 +350,7 @@ export default function App() {
 
             {/* Actions */}
             <div 
-              className="rounded-xl p-3 md:p-5"
+              className="rounded-xl p-3 md:p-5 w-full"
               style={{ 
                 background: "linear-gradient(135deg, #1a1a1a, #0a0a0a)",
                 border: "1px solid #333",
@@ -391,7 +401,7 @@ export default function App() {
 
           {/* Preview */}
           <div 
-            className="rounded-xl p-3 md:p-6 sticky top-4"
+            className="rounded-xl p-3 md:p-6 sticky top-4 w-full"
             style={{ 
               background: "linear-gradient(135deg, #1a1a1a, #0a0a0a)",
               border: "1px solid #333",
@@ -400,14 +410,14 @@ export default function App() {
             }}
           >
             <h3 className="text-yellow-400 font-bold mb-2 md:mb-4 text-base md:text-lg">Live Preview</h3>
-            <div className="flex justify-center">
+            <div className="flex justify-center w-full">
               <div 
-                className="rounded-2xl overflow-hidden transition-all"
+                className="rounded-2xl overflow-hidden transition-all w-full"
                 style={{ 
                   border: `3px solid ${color}`,
                   boxShadow: `0 0 40px ${color}80`,
-                  width: "180px", // smaller for mobile
-                  maxWidth: "100%"
+                  maxWidth: "100%",
+                  width: "180px"
                 }}
               >
                 <div 
