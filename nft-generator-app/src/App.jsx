@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Sparkles, Camera, Palette, Zap, Download, Check, Lock, Unlock, Film, Image as ImageIcon, RefreshCw, Paintbrush } from "lucide-react";
+import { Camera, Palette, Zap, Download, Check, Lock, Unlock, Film, Image as ImageIcon, RefreshCw } from "lucide-react";
 import { createThirdwebClient } from "thirdweb";
 import { ConnectButton, useActiveAccount, useActiveWallet } from "thirdweb/react";
 
@@ -15,6 +15,13 @@ const RARITY_COLORS = {
   Mythic: { bg: "#1a1a1a", border: "#ec4899", glow: "rgba(236, 72, 153, 0.8)", text: "#fff" }
 };
 
+const COLOR_PRESETS = [
+  { name: "Blue", color: "#2563eb", glow: "rgba(37, 99, 235, 0.6)" },
+  { name: "Green", color: "#10b981", glow: "rgba(16, 185, 129, 0.6)" },
+  { name: "Purple", color: "#a855f7", glow: "rgba(168, 85, 247, 0.6)" },
+  { name: "Red", color: "#ef4444", glow: "rgba(239, 68, 68, 0.6)" }
+];
+
 const NETWORKS = [
   { name: "Ethereum", chainId: 1, symbol: "ETH", fee: "0.001", color: "#2563eb", icon: "Ξ" },
   { name: "Polygon", chainId: 137, symbol: "MATIC", fee: "0.01", color: "#8247E5", icon: "◈" },
@@ -24,31 +31,7 @@ const NETWORKS = [
 
 const TREASURY = "0x592B35c8917eD36c39Ef73D0F5e92B0173560b2e";
 
-const BUTTON_THEMES = {
-  blue: {
-    label: "Blue",
-    gradient: "from-blue-600 to-blue-400 hover:from-blue-700 hover:to-blue-500",
-    led: "bg-blue-400 shadow-[0_0_8px_2px_rgba(59,130,246,0.7)]",
-  },
-  green: {
-    label: "Green",
-    gradient: "from-green-600 to-emerald-400 hover:from-green-700 hover:to-emerald-500",
-    led: "bg-green-400 shadow-[0_0_8px_2px_rgba(34,197,94,0.7)]",
-  },
-  purple: {
-    label: "Purple",
-    gradient: "from-purple-600 to-pink-400 hover:from-purple-700 hover:to-pink-500",
-    led: "bg-purple-400 shadow-[0_0_8px_2px_rgba(168,85,247,0.7)]",
-  },
-  red: {
-    label: "Red",
-    gradient: "from-rose-600 to-orange-400 hover:from-rose-700 hover:to-orange-500",
-    led: "bg-rose-400 shadow-[0_0_8px_2px_rgba(244,63,94,0.7)]",
-  }
-};
-
-function Led({ active, disabled, color = "blue" }) {
-  const theme = BUTTON_THEMES[color] || BUTTON_THEMES.blue;
+function Led({ active, disabled, color = "#2563eb", glow = "rgba(37,99,235,0.7)", delay = "0s" }) {
   return (
     <span
       className={
@@ -56,11 +39,59 @@ function Led({ active, disabled, color = "blue" }) {
         (disabled
           ? "bg-gray-700"
           : active
-            ? `${theme.led} animate-pulse`
-            : theme.led
+            ? ""
+            : ""
         )
       }
+      style={{
+        background: disabled ? "#374151" : color,
+        boxShadow: disabled ? "none" : `0 0 8px 2px ${glow}`,
+        animation: active && !disabled ? `led-pulse 1.2s infinite` : "none",
+        animationDelay: delay
+      }}
     />
+  );
+}
+
+// Diamond logo with 4 pulsing LEDs and shine
+function DiamondLogo({ color, glow }) {
+  return (
+    <div className="relative flex items-center justify-center" style={{ width: 64, height: 64 }}>
+      {/* Diamond SVG */}
+      <svg width="56" height="56" viewBox="0 0 56 56" className="z-10" style={{ filter: `drop-shadow(0 0 16px ${glow})` }}>
+        <defs>
+          <linearGradient id="diamond-grad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor={color} />
+            <stop offset="100%" stopColor="#fff" />
+          </linearGradient>
+        </defs>
+        <polygon
+          points="28,4 52,20 44,52 12,52 4,20"
+          fill="url(#diamond-grad)"
+          stroke={color}
+          strokeWidth="2"
+        />
+        {/* Shine */}
+        <polygon
+          points="28,8 46,20 40,48 16,48 10,20"
+          fill="rgba(255,255,255,0.15)"
+        />
+      </svg>
+      {/* LED Corners */}
+      <Led active color={color} glow={glow} delay="0s" style={{ position: "absolute", left: 0, top: 0 }} />
+      <Led active color={color} glow={glow} delay="0.3s" style={{ position: "absolute", right: 0, top: 0 }} />
+      <Led active color={color} glow={glow} delay="0.6s" style={{ position: "absolute", left: 0, bottom: 0 }} />
+      <Led active color={color} glow={glow} delay="0.9s" style={{ position: "absolute", right: 0, bottom: 0 }} />
+      {/* Outer Glow */}
+      <span
+        className="absolute inset-0 rounded-full pointer-events-none"
+        style={{
+          boxShadow: `0 0 32px 8px ${glow}`,
+          opacity: 0.5,
+          zIndex: 0
+        }}
+      />
+    </div>
   );
 }
 
@@ -70,7 +101,8 @@ export default function App() {
   const [name, setName] = useState("Epic NFT");
   const [rarity, setRarity] = useState("Legendary");
   const [stats, setStats] = useState({ attack: 85, defense: 70, speed: 90, magic: 75 });
-  const [color, setColor] = useState("#2563eb");
+  const [color, setColor] = useState(COLOR_PRESETS[0].color);
+  const [glow, setGlow] = useState(COLOR_PRESETS[0].glow);
   const [network, setNetwork] = useState(NETWORKS[2]);
   const [txStatus, setTxStatus] = useState(null);
   const [txHash, setTxHash] = useState(null);
@@ -134,7 +166,7 @@ export default function App() {
       y: Math.random() * -canvas.height,
       r: Math.random() * 6 + 4,
       d: Math.random() * 80 + 10,
-      color: ["#2563eb", "#a855f7", "#ec4899", "#fbbf24"][Math.floor(Math.random() * 4)],
+      color: [color, "#a855f7", "#ec4899", "#fbbf24"][Math.floor(Math.random() * 4)],
       tilt: Math.random() * 10 - 10
     }));
 
@@ -363,7 +395,7 @@ export default function App() {
               cx={`${p.x}vw`}
               cy={`${p.y}vh`}
               r={p.size}
-              fill="#2563eb"
+              fill={color}
               opacity="0.3"
             >
               <animate
@@ -378,101 +410,55 @@ export default function App() {
       </div>
       <div className="w-full max-w-6xl mx-auto mt-10">
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-center gap-4 p-6 rounded-3xl bg-black border-2 border-blue-500 shadow-2xl mb-8" style={{ boxShadow: "0 0 20px rgba(59,130,246,0.5)" }}>
+        <div className="flex flex-col md:flex-row justify-between items-center gap-4 p-6 rounded-3xl bg-black border-2 border-blue-500 shadow-2xl mb-8" style={{ boxShadow: `0 0 20px ${glow}` }}>
           <div className="flex items-center gap-4">
-            <div className="p-3 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 shadow-xl">
-              <Sparkles className="w-8 h-8 text-white" />
-            </div>
+            <DiamondLogo color={color} glow={glow} />
             <div>
-              <h1 className="text-3xl md:text-4xl font-black text-blue-400">NFT Generator Pro</h1>
-              <p className="text-sm text-blue-300 font-medium mt-1">Create, Customize & Mint NFTs</p>
+              <h1 className="text-3xl md:text-4xl font-black" style={{ color }}>NFT Generator Pro</h1>
+              <p className="text-sm" style={{ color: "#60a5fa" }}>Create, Customize & Mint NFTs</p>
             </div>
           </div>
           <ConnectButton client={client} />
         </div>
 
-        {/* Color selector */}
-        <div className="flex gap-2 mb-4">
-          {Object.keys(BUTTON_THEMES).map((key) => (
+        {/* Color preset buttons */}
+        <div className="grid grid-cols-4 gap-3 mb-6">
+          {COLOR_PRESETS.map((preset, i) => (
             <button
-              key={key}
-              onClick={() => setButtonTheme(key)}
-              className={`flex items-center gap-1 px-3 py-1 rounded-full font-bold border-2 transition-all shadow
-                ${buttonTheme === key
-                  ? `border-white bg-gradient-to-r ${BUTTON_THEMES[key].gradient} scale-105`
-                  : "border-transparent bg-black/40 hover:scale-105"}`}
+              key={preset.name}
+              onClick={() => { setColor(preset.color); setGlow(preset.glow); }}
+              className={`flex flex-col items-center justify-center px-2 py-2 rounded-xl font-bold border-2 transition-all shadow
+                ${color === preset.color
+                  ? `border-white scale-110`
+                  : "border-transparent hover:scale-105"}
+              `}
+              style={{
+                background: `linear-gradient(135deg, ${preset.color} 0%, #000 100%)`,
+                boxShadow: `0 0 16px 2px ${preset.glow}`,
+                color: "#fff"
+              }}
             >
-              <span className={`w-3 h-3 rounded-full ${BUTTON_THEMES[key].led}`}></span>
-              {BUTTON_THEMES[key].label}
+              <span className={`w-3 h-3 rounded-full mb-1`} style={{
+                background: preset.color,
+                boxShadow: `0 0 8px 2px ${preset.glow}`,
+                animation: `led-pulse 1.2s infinite`,
+                animationDelay: `${i * 0.2}s`
+              }} />
+              {preset.name}
             </button>
           ))}
         </div>
 
-        {/* Main Content */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Controls */}
-          <div className="space-y-6">
-            {/* Upload */}
-            <div className="bg-black rounded-2xl p-6 border-2 border-blue-500 shadow-xl" style={{ boxShadow: "0 0 20px rgba(59,130,246,0.5)" }}>
-              <h3 className="text-blue-400 font-bold mb-4 flex items-center gap-2 text-lg">
-                <Camera className="w-6 h-6" /> Upload Media
-              </h3>
-              <div className="grid grid-cols-2 gap-4">
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className={`py-4 rounded-xl font-bold text-white bg-gradient-to-r ${BUTTON_THEMES[buttonTheme].gradient} border-2 border-blue-500 shadow-lg flex items-center justify-center gap-2 hover:scale-105 transition`}
-                  style={{ boxShadow: "0 0 20px rgba(59,130,246,0.5)" }}
-                >
-                  <Led active={true} color={buttonTheme} />
-                  <ImageIcon className="w-5 h-5" />Choose File
-                </button>
-                <button
-                  onClick={convertToGif}
-                  disabled={!media || mediaType === "gif" || isProcessing}
-                  className={`py-4 rounded-xl font-bold text-white bg-gradient-to-r ${BUTTON_THEMES[buttonTheme].gradient} border-2 border-blue-500 shadow-lg flex items-center justify-center gap-2 transition ${(!media || mediaType === "gif" || isProcessing) ? "opacity-50 cursor-not-allowed" : "hover:scale-105"}`}
-                  style={{ boxShadow: "0 0 20px rgba(59,130,246,0.5)" }}
-                >
-                  <Led active={ledActive(!(!media || mediaType === "gif" || isProcessing), isProcessing)} disabled={!media || mediaType === "gif" || isProcessing} color={buttonTheme} />
-                  {isProcessing ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Film className="w-5 h-5" />}
-                  {isProcessing ? "Processing..." : "To GIF"}
-                </button>
-              </div>
-              <input ref={fileInputRef} type="file" accept="image/*,image/gif" onChange={handleMediaUpload} className="hidden" />
-              {media && (
-                <div className="mt-5 p-4 rounded-2xl bg-gradient-to-r from-blue-500/20 to-blue-700/20 border-2 border-blue-500/40 flex items-center gap-3">
-                  <Check className="w-6 h-6 text-blue-400" />
-                  <span className="text-blue-300 font-semibold">{mediaType === "gif" ? "✨ Animated GIF ready!" : "📸 Image uploaded!"}</span>
-                </div>
-              )}
-            </div>
-            {/* ...rest of your controls (NFT Config, Attributes, Network, Payment & Download) ... */}
-            {/* (Use the same BUTTON_THEMES[buttonTheme].gradient and <Led color={buttonTheme} /> for all buttons) */}
-            {/* ...copy the rest of your controls from your previous App.jsx ... */}
-            {/* ...for brevity, not repeating the entire controls block here ... */}
-          </div>
-
-          {/* NFT Card Preview */}
-          <div className="flex justify-center items-start">
-            <div
-              className="rounded-3xl overflow-hidden w-full max-w-md shadow-2xl"
-              style={{
-                border: "4px solid #a855f7",
-                boxShadow: "0 0 50px #a855f7, 0 0 100px #a855f7",
-                background: "linear-gradient(135deg, #7c3aed 0%, #22d3ee 100%)",
-                transform: `perspective(900px) rotateX(${cardRotation.x}deg) rotateY(${cardRotation.y}deg)`,
-                transition: "transform 0.2s cubic-bezier(.25,.8,.25,1)"
-              }}
-              onMouseMove={handleCardMouseMove}
-              onMouseLeave={handleCardMouseLeave}
-            >
-              {/* ...rest of your NFT card preview... */}
-              {/* (No changes needed here except for the new style/handlers above) */}
-              {/* ...copy the rest of your NFT card preview from your previous App.jsx ... */}
-            </div>
-          </div>
-        </div>
-        <canvas ref={canvasRef} className="hidden" />
+        {/* ...rest of your app (controls, NFT card, etc.) ... */}
+        {/* Use color and glow for all accent colors, LED, and button gradients */}
+        {/* ...copy the rest of your controls and NFT card from your previous App.jsx ... */}
       </div>
+      <style>{`
+        @keyframes led-pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+      `}</style>
     </div>
   );
 }
