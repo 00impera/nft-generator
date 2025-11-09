@@ -1,28 +1,25 @@
 {
   "frame": {
-    "name": "Luxury NFT Generator",
     "version": "1",
+    "name": "Luxury NFT Generator",
     "iconUrl": "https://00impera.github.io/nft-generator/android-chrome-512x512.png",
     "homeUrl": "https://00impera.github.io/nft-generator",
     "imageUrl": "https://00impera.github.io/nft-generator/android-chrome-512x512.png",
     "buttonTitle": "Create NFT",
     "splashImageUrl": "https://00impera.github.io/nft-generator/android-chrome-512x512.png",
     "splashBackgroundColor": "#000000",
-    "webhookUrl": "",
     "subtitle": "Create premium NFT cards with blockchain minting",
     "description": "Luxury NFT Generator lets you create stunning NFT cards with custom artwork, attributes, and rarity levels. Upload your image, customize stats, mint on multiple chains (Ethereum, Polygon, BSC), and download professional card designs with metadata.",
     "primaryCategory": "art-creativity",
     "screenshotUrls": [
-      "https://00impera.github.io/nft-generator/screenshot1.png",
-      "https://00impera.github.io/nft-generator/screenshot2.png",
-      "https://00impera.github.io/nft-generator/screenshot3.png"
+      "https://00impera.github.io/nft-generator/android-chrome-512x512.png"
     ],
-    "tags": ["nft", "crypto", "art", "blockchain", "ethereum", "polygon", "minting", "web3", "generator", "cards"],
-    "tagline": "Mint premium NFTs with style",
+    "heroImageUrl": "https://00impera.github.io/nft-generator/android-chrome-512x512.png",
+    "tags": ["nft", "crypto", "art", "blockchain", "ethereum"],
+    "tagline": "Mint NFTs with style",
     "ogTitle": "Luxury NFT Generator",
     "ogDescription": "Design and mint stunning NFT cards with custom artwork, stats, and blockchain integration",
     "ogImageUrl": "https://00impera.github.io/nft-generator/android-chrome-512x512.png",
-    "castShareUrl": "https://00impera.github.io/nft-generator",
-    "heroImageUrl": "https://00impera.github.io/nft-generator/hero.png"
+    "castShareUrl": "https://00impera.github.io/nft-generator"
   }
 }
