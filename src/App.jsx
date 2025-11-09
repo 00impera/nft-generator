@@ -1,49 +1,33 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Upload, Download, Sparkles, Wallet, X, Network, Film, Info, Copy, Palette, Wand2, Zap } from 'lucide-react';
-
-const MYTHIC_COLORS = [
-  { name: 'Electric Cyan', primary: '#00ffff', secondary: '#0088ff', glow: 'rgba(0,255,255,0.5)' },
-  { name: 'Laser Gold', primary: '#ffd700', secondary: '#ff8800', glow: 'rgba(255,215,0,0.5)' },
-  { name: 'Neon Pink', primary: '#ff00ff', secondary: '#ff0088', glow: 'rgba(255,0,255,0.5)' },
-  { name: 'Plasma Purple', primary: '#8800ff', secondary: '#ff00ff', glow: 'rgba(136,0,255,0.5)' },
-  { name: 'Toxic Green', primary: '#00ff00', secondary: '#88ff00', glow: 'rgba(0,255,0,0.5)' },
-  { name: 'Crimson Red', primary: '#ff0000', secondary: '#ff0088', glow: 'rgba(255,0,0,0.5)' }
-];
+import { Upload, Download, Sparkles, Film, Zap, Camera, Palette, Wallet, X, Check, Network } from 'lucide-react';
 
 const NETWORKS = {
   eth: { name: 'Ethereum', chainId: '0x1', symbol: 'ETH', fee: '0.001', color: '#627EEA' },
   bsc: { name: 'BSC', chainId: '0x38', symbol: 'BNB', fee: '0.003', color: '#F3BA2F' },
   polygon: { name: 'Polygon', chainId: '0x89', symbol: 'MATIC', fee: '1.0', color: '#8247E5' },
-  arbitrum: { name: 'Arbitrum', chainId: '0xa4b1', symbol: 'ETH', fee: '0.0005', color: '#28A0F0' },
   base: { name: 'Base', chainId: '0x2105', symbol: 'ETH', fee: '0.0005', color: '#0052FF' }
 };
 
 const TREASURY = '0x592B35c8917eD36c39Ef73D0F5e92B0173560b2e';
 
-export default function NFTCardGenerator() {
-  const [mediaFile, setMediaFile] = useState(null);
+const NFTCardGenerator = () => {
+  const [media, setMedia] = useState(null);
   const [mediaType, setMediaType] = useState(null);
-  const [color, setColor] = useState(0);
-  const [customColor, setCustomColor] = useState({ r: 0, g: 255, b: 255 });
-  const [useCustomColor, setUseCustomColor] = useState(false);
+  const [name, setName] = useState('Epic NFT');
+  const [rarity, setRarity] = useState('Legendary');
   const [stats, setStats] = useState({ attack: 85, defense: 70, speed: 90, magic: 75 });
-  const [edition] = useState(Math.floor(Math.random() * 999) + 1);
-  const [metadata, setMetadata] = useState({ name: '', description: '', creator: '' });
-  const [showMetadata, setShowMetadata] = useState(false);
+  const [chain, setChain] = useState('eth');
+  const [color, setColor] = useState('#00ffff');
+  const [isConverting, setIsConverting] = useState(false);
+  
   const [wallet, setWallet] = useState(null);
   const [provider, setProvider] = useState(null);
   const [showWallet, setShowWallet] = useState(false);
   const [showNetwork, setShowNetwork] = useState(false);
-  const [network, setNetwork] = useState('eth');
-  const [dragActive, setDragActive] = useState(false);
-  const canvasRef = useRef(null);
-  const fileRef = useRef(null);
-
-  useEffect(() => {
-    drawCard();
-    const interval = setInterval(drawCard, 50);
-    return () => clearInterval(interval);
-  }, [mediaFile, color, customColor, useCustomColor, stats]);
+  const [txStatus, setTxStatus] = useState(null);
+  
+  const fileInputRef = useRef();
+  const canvasRef = useRef();
 
   useEffect(() => {
     checkWallet();
@@ -51,7 +35,7 @@ export default function NFTCardGenerator() {
 
   const checkWallet = async () => {
     try {
-      const p = window.ethereum;
+      const p = window.ethereum || window.trustwallet;
       if (p) {
         const accounts = await p.request({ method: 'eth_accounts' });
         if (accounts[0]) {
@@ -64,9 +48,15 @@ export default function NFTCardGenerator() {
     }
   };
 
-  const connect = async () => {
+  const connectWallet = async (type) => {
     try {
-      const p = window.ethereum;
+      let p = window.ethereum;
+      if (type === 'trust' && window.trustwallet) p = window.trustwallet;
+      if (window.ethereum?.providers) {
+        if (type === 'metamask') p = window.ethereum.providers.find(x => x.isMetaMask);
+        if (type === 'coinbase') p = window.ethereum.providers.find(x => x.isCoinbaseWallet);
+      }
+      
       const accounts = await p.request({ method: 'eth_requestAccounts' });
       setWallet(accounts[0]);
       setProvider(p);
@@ -76,534 +66,412 @@ export default function NFTCardGenerator() {
     }
   };
 
-  const switchNet = async (net) => {
+  const switchNetwork = async (net) => {
     try {
       await provider.request({
         method: 'wallet_switchEthereumChain',
         params: [{ chainId: NETWORKS[net].chainId }]
       });
-      setNetwork(net);
+      setChain(net);
       setShowNetwork(false);
     } catch (err) {
-      alert('Network switch failed');
+      if (err.code === 4902) {
+        alert('Please add this network to your wallet first');
+      }
     }
   };
 
-  const mint = async () => {
-    if (!wallet) { setShowWallet(true); return; }
-    if (!mediaFile) { alert('Upload media first!'); return; }
+  const mintWithPayment = async () => {
+    if (!wallet) { 
+      setShowWallet(true); 
+      return; 
+    }
+    if (!media) { 
+      alert('Upload image first!'); 
+      return; 
+    }
     
     try {
-      const net = NETWORKS[network];
+      setTxStatus('pending');
+      const net = NETWORKS[chain];
       const value = '0x' + BigInt(Math.floor(parseFloat(net.fee) * 1e18)).toString(16);
       
-      await provider.request({
+      const tx = await provider.request({
         method: 'eth_sendTransaction',
         params: [{ from: wallet, to: TREASURY, value, gas: '0x5208' }]
       });
       
-      downloadCard();
-      downloadMetadata();
-      alert('✅ Success! Downloading card + metadata...');
+      setTxStatus('success');
+      alert('✅ Payment successful! Downloading card...');
+      setTimeout(downloadCard, 1000);
     } catch (err) {
-      if (err.code === 4001) alert('❌ Transaction cancelled');
-      else alert('❌ Failed: ' + err.message);
+      setTxStatus('failed');
+      if (err.code === 4001) {
+        alert('❌ Transaction cancelled');
+      } else if (err.message?.includes('insufficient')) {
+        alert(`💰 Insufficient funds. Need ${NETWORKS[chain].fee} ${NETWORKS[chain].symbol}`);
+      } else {
+        alert('❌ Transaction failed: ' + err.message);
+      }
     }
   };
 
-  const handleDrag = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(e.type === "dragenter" || e.type === "dragover");
+  const handleMediaUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setMedia(ev.target.result);
+      setMediaType(file.type.startsWith('image/') ? 'image' : 'video');
+    };
+    reader.readAsDataURL(file);
   };
 
-  const handleDrop = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    if (e.dataTransfer.files?.[0]) processFile(e.dataTransfer.files[0]);
+  const convertToGif = async () => {
+    if (!media || mediaType !== 'image') return;
+    setIsConverting(true);
+    setTimeout(() => {
+      alert('GIF conversion ready! Use gif.js library for production.');
+      setMediaType('gif');
+      setIsConverting(false);
+    }, 1000);
   };
 
-  const processFile = (file) => {
-    if (file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        const img = new Image();
-        img.onload = () => {
-          setMediaFile(img);
-          setMediaType(file.type === 'image/gif' ? 'gif' : 'image');
-        };
-        img.src = ev.target.result;
-      };
-      reader.readAsDataURL(file);
-    } else if (file.type.startsWith('video/')) {
-      const url = URL.createObjectURL(file);
-      const video = document.createElement('video');
-      video.onloadeddata = () => {
-        setMediaFile(video);
-        setMediaType('video');
-      };
-      video.src = url;
-      video.load();
-    } else {
-      alert('Please upload image, GIF, or video');
-    }
-  };
-
-  const randomize = () => {
+  const randomizeStats = () => {
     setStats({
-      attack: Math.floor(Math.random() * 40) + 60,
-      defense: Math.floor(Math.random() * 40) + 60,
-      speed: Math.floor(Math.random() * 40) + 60,
-      magic: Math.floor(Math.random() * 40) + 60
+      attack: Math.floor(Math.random() * 100),
+      defense: Math.floor(Math.random() * 100),
+      speed: Math.floor(Math.random() * 100),
+      magic: Math.floor(Math.random() * 100)
     });
-  };
-
-  const downloadCard = () => {
-    const link = document.createElement('a');
-    link.download = `nft-card-${edition}.png`;
-    link.href = canvasRef.current.toDataURL();
-    link.click();
   };
 
   const downloadMetadata = () => {
-    const meta = {
-      name: metadata.name || `MYTHIC NFT #${edition}`,
-      description: metadata.description || 'A unique NFT card',
-      image: `nft-card-${edition}.png`,
-      edition: edition,
-      creator: metadata.creator || wallet || 'Anonymous',
+    const metadata = {
+      name,
+      description: `${rarity} NFT on ${NETWORKS[chain].name}`,
+      image: media || "ipfs://...",
       attributes: [
+        { trait_type: 'Rarity', value: rarity },
+        { trait_type: 'Chain', value: NETWORKS[chain].name },
         { trait_type: 'Attack', value: stats.attack },
         { trait_type: 'Defense', value: stats.defense },
         { trait_type: 'Speed', value: stats.speed },
-        { trait_type: 'Magic', value: stats.magic },
-        { trait_type: 'Color', value: getCurrentColor().name },
-        { trait_type: 'Media', value: mediaType || 'None' }
+        { trait_type: 'Magic', value: stats.magic }
       ]
     };
-    
-    const blob = new Blob([JSON.stringify(meta, null, 2)], { type: 'application/json' });
-    const link = document.createElement('a');
-    link.download = `nft-card-${edition}-metadata.json`;
-    link.href = URL.createObjectURL(blob);
-    link.click();
+    const blob = new Blob([JSON.stringify(metadata, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'nft-metadata.json';
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
-  const copyMetadata = () => {
-    const meta = { name: metadata.name || `MYTHIC NFT #${edition}`, edition, stats };
-    navigator.clipboard.writeText(JSON.stringify(meta, null, 2));
-    alert('Copied!');
-  };
-
-  const getCurrentColor = () => {
-    if (useCustomColor) {
-      const { r, g, b } = customColor;
-      return {
-        name: `RGB(${r},${g},${b})`,
-        primary: `rgb(${r},${g},${b})`,
-        secondary: `rgb(${Math.max(0, r-50)},${Math.max(0, g-50)},${Math.max(0, b-50)})`,
-        glow: `rgba(${r},${g},${b},0.5)`
-      };
-    }
-    return MYTHIC_COLORS[color];
-  };
-
-  const drawCard = () => {
+  const downloadCard = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
-    const col = getCurrentColor();
+    canvas.width = 400;
+    canvas.height = 600;
 
-    ctx.clearRect(0, 0, 800, 1200);
+    const gradient = ctx.createLinearGradient(0, 0, 0, 600);
+    gradient.addColorStop(0, color);
+    gradient.addColorStop(1, '#1a1a2e');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 400, 600);
 
-    const bgGrad = ctx.createLinearGradient(0, 0, 800, 1200);
-    bgGrad.addColorStop(0, '#0a0a0a');
-    bgGrad.addColorStop(0.5, '#1a1a2e');
-    bgGrad.addColorStop(1, '#0a0a0a');
-    ctx.fillStyle = bgGrad;
-    ctx.fillRect(0, 0, 800, 1200);
-
-    for (let i = 0; i < 4; i++) {
-      const angle = (Date.now() / 2000 + (i * Math.PI / 2)) % (Math.PI * 2);
-      const x = 400 + Math.cos(angle) * 200;
-      const y = 600 + Math.sin(angle) * 200;
-      const glow = ctx.createRadialGradient(x, y, 0, x, y, 150);
-      glow.addColorStop(0, col.glow);
-      glow.addColorStop(1, 'transparent');
-      ctx.fillStyle = glow;
-      ctx.beginPath();
-      ctx.arc(x, y, 150, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    ctx.shadowColor = col.primary;
-    ctx.shadowBlur = 20;
-    ctx.strokeStyle = col.primary;
-    ctx.lineWidth = 8;
-    ctx.strokeRect(30, 30, 740, 1140);
-    ctx.shadowBlur = 10;
+    ctx.strokeStyle = color;
     ctx.lineWidth = 4;
-    ctx.strokeStyle = col.secondary;
-    ctx.strokeRect(45, 45, 710, 1110);
+    ctx.shadowBlur = 20;
+    ctx.shadowColor = color;
+    ctx.strokeRect(10, 10, 380, 580);
 
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = 'rgba(0,0,0,0.8)';
-    ctx.fillRect(80, 180, 640, 480);
-
-    if (mediaFile) {
-      const aspect = mediaFile.width / mediaFile.height || mediaFile.videoWidth / mediaFile.videoHeight;
-      const boxAspect = 640 / 480;
-      let w, h, ox, oy;
-      if (aspect > boxAspect) {
-        h = 480; w = 480 * aspect; ox = (640 - w) / 2; oy = 0;
-      } else {
-        w = 640; h = 640 / aspect; ox = 0; oy = (480 - h) / 2;
-      }
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(80, 180, 640, 480);
-      ctx.clip();
-      ctx.drawImage(mediaFile, 80 + ox, 180 + oy, w, h);
-      ctx.restore();
-
-      ctx.fillStyle = 'rgba(0,0,0,0.8)';
-      ctx.fillRect(90, 190, 80, 30);
-      ctx.fillStyle = col.primary;
-      ctx.font = 'bold 14px Arial';
-      ctx.textAlign = 'left';
-      ctx.fillText(mediaType?.toUpperCase() || 'IMAGE', 100, 210);
+    if (media && (mediaType === 'image' || mediaType === 'gif')) {
+      const img = new window.Image();
+      img.onload = () => {
+        ctx.drawImage(img, 30, 30, 340, 340);
+        drawText();
+      };
+      img.src = media;
     } else {
-      ctx.fillStyle = col.primary;
-      ctx.font = 'bold 32px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText('Upload Your Media', 400, 420);
+      drawText();
     }
 
-    ctx.shadowColor = col.primary;
-    ctx.shadowBlur = 30;
-    ctx.fillStyle = col.primary;
-    ctx.font = 'bold 56px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText(`MYTHIC NFT #${String(edition).padStart(3, '0')}`, 400, 130);
-
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = 'rgba(0,0,0,0.9)';
-    ctx.beginPath();
-    ctx.roundRect(250, 720, 300, 70, 35);
-    ctx.fill();
-    const badgeGrad = ctx.createLinearGradient(250, 720, 550, 720);
-    badgeGrad.addColorStop(0, col.primary);
-    badgeGrad.addColorStop(1, col.secondary);
-    ctx.strokeStyle = badgeGrad;
-    ctx.lineWidth = 5;
-    ctx.stroke();
-    ctx.fillStyle = badgeGrad;
-    ctx.font = 'bold 28px Arial';
-    ctx.fillText(col.name.toUpperCase(), 400, 760);
-
-    const statList = [
-      { label: 'ATK', value: stats.attack, y: 840 },
-      { label: 'DEF', value: stats.defense, y: 920 },
-      { label: 'SPD', value: stats.speed, y: 1000 },
-      { label: 'MAG', value: stats.magic, y: 1080 }
-    ];
-
-    statList.forEach(s => {
-      ctx.fillStyle = 'white';
+    function drawText() {
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 28px Arial';
-      ctx.textAlign = 'left';
-      ctx.fillText(s.label, 100, s.y);
-      ctx.fillStyle = 'rgba(255,255,255,0.1)';
-      ctx.fillRect(200, s.y - 25, 500, 35);
-      const barGrad = ctx.createLinearGradient(200, s.y - 25, 700, s.y - 25);
-      barGrad.addColorStop(0, col.primary);
-      barGrad.addColorStop(1, col.secondary);
-      ctx.fillStyle = barGrad;
-      ctx.fillRect(200, s.y - 25, (s.value / 100) * 500, 35);
-      ctx.fillStyle = 'white';
-      ctx.font = 'bold 24px Arial';
       ctx.textAlign = 'center';
-      ctx.fillText(s.value, 650 + (50 - s.value / 2), s.y);
-    });
+      ctx.fillText(name, 200, 410);
+      ctx.font = '16px Arial';
+      ctx.fillStyle = color;
+      ctx.fillText(rarity, 200, 440);
+      ctx.font = '14px Arial';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(`⚔️${stats.attack} 🛡️${stats.defense}`, 200, 480);
+      ctx.fillText(`⚡${stats.speed} ✨${stats.magic}`, 200, 505);
+      ctx.fillText(`${NETWORKS[chain].name}`, 200, 560);
 
-    ctx.fillStyle = 'rgba(255,255,255,0.3)';
-    ctx.font = 'bold 20px Arial';
-    ctx.fillText(`Edition ${edition}/999`, 400, 1160);
+      const link = document.createElement('a');
+      link.download = 'nft-card.png';
+      link.href = canvas.toDataURL();
+      link.click();
+    }
   };
 
-  const net = NETWORKS[network];
+  const net = NETWORKS[chain];
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-purple-600 via-pink-500 to-blue-500">
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-20 w-64 h-64 bg-purple-400 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse"></div>
-        <div className="absolute top-40 right-20 w-96 h-96 bg-pink-400 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse"></div>
-        <div className="absolute bottom-20 left-1/2 w-80 h-80 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse"></div>
-      </div>
-
-      <div className="relative z-10 p-4 md:p-8">
-        {showWallet && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="backdrop-blur-xl bg-white/10 border-2 border-white/20 rounded-3xl p-6 max-w-sm w-full">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-white">Connect Wallet</h2>
-                <button onClick={() => setShowWallet(false)} className="text-white/60 hover:text-white">
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-              <button onClick={connect} className="w-full bg-gradient-to-r from-orange-500 to-yellow-600 hover:from-orange-600 hover:to-yellow-700 text-white font-bold py-3 px-4 rounded-xl">
-                MetaMask
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 p-3">
+      {showWallet && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+          <div className="bg-gray-900 border-2 border-cyan-500 rounded-xl p-6 max-w-sm w-full">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-bold text-white">Connect Wallet</h2>
+              <button onClick={() => setShowWallet(false)} className="text-gray-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-2">
+              <button onClick={() => connectWallet('metamask')} className="w-full bg-gradient-to-r from-orange-500 to-yellow-600 hover:from-orange-600 hover:to-yellow-700 text-white font-bold py-2.5 px-4 rounded-lg text-sm">
+                🦊 MetaMask
+              </button>
+              <button onClick={() => connectWallet('trust')} className="w-full bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white font-bold py-2.5 px-4 rounded-lg text-sm">
+                💙 Trust Wallet
+              </button>
+              <button onClick={() => connectWallet('coinbase')} className="w-full bg-gradient-to-r from-indigo-600 to-purple-700 hover:from-indigo-700 hover:to-purple-800 text-white font-bold py-2.5 px-4 rounded-lg text-sm">
+                🔷 Coinbase
               </button>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {showNetwork && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="backdrop-blur-xl bg-white/10 border-2 border-white/20 rounded-3xl p-6 max-w-sm w-full">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-white">Select Network</h2>
-                <button onClick={() => setShowNetwork(false)} className="text-white/60 hover:text-white">
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-              <div className="space-y-2">
-                {Object.entries(NETWORKS).map(([key, n]) => (
-                  <button
-                    key={key}
-                    onClick={() => switchNet(key)}
-                    className="w-full text-white font-bold py-3 px-4 rounded-xl flex justify-between"
-                    style={{ background: n.color }}
-                  >
-                    <span>{n.name}</span>
-                    <span className="text-sm">{n.fee} {n.symbol}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {showMetadata && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="backdrop-blur-xl bg-white/10 border-2 border-white/20 rounded-3xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                  <Info className="w-5 h-5" />
-                  Metadata
-                </h2>
-                <button onClick={() => setShowMetadata(false)} className="text-white/60 hover:text-white">
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-              <div className="space-y-4">
-                <div>
-                  <label className="text-white text-sm font-semibold mb-2 block">Name</label>
-                  <input
-                    type="text"
-                    value={metadata.name}
-                    onChange={(e) => setMetadata({...metadata, name: e.target.value})}
-                    placeholder={`MYTHIC NFT #${edition}`}
-                    className="w-full px-4 py-3 rounded-xl bg-white/20 border border-white/30 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/50"
-                  />
-                </div>
-                <div>
-                  <label className="text-white text-sm font-semibold mb-2 block">Description</label>
-                  <textarea
-                    value={metadata.description}
-                    onChange={(e) => setMetadata({...metadata, description: e.target.value})}
-                    placeholder="Describe your NFT..."
-                    rows="3"
-                    className="w-full px-4 py-3 rounded-xl bg-white/20 border border-white/30 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/50"
-                  />
-                </div>
-                <div>
-                  <label className="text-white text-sm font-semibold mb-2 block">Creator</label>
-                  <input
-                    type="text"
-                    value={metadata.creator}
-                    onChange={(e) => setMetadata({...metadata, creator: e.target.value})}
-                    placeholder={wallet || "Anonymous"}
-                    className="w-full px-4 py-3 rounded-xl bg-white/20 border border-white/30 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/50"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={copyMetadata} className="flex-1 bg-white/20 hover:bg-white/30 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2">
-                    <Copy className="w-4 h-4" />
-                    Copy
-                  </button>
-                  <button onClick={downloadMetadata} className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2">
-                    <Download className="w-4 h-4" />
-                    Download
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-            <div className="backdrop-blur-xl bg-white/10 rounded-3xl p-6 border border-white/20">
-              <h1 className="text-3xl md:text-5xl font-bold text-white mb-2 flex items-center gap-3">
-                <Sparkles className="w-8 h-8 text-yellow-300 animate-pulse" />
-                NFT Card Generator
-              </h1>
-              <p className="text-white/90 font-medium">Premium • Multi-chain • Metadata</p>
-            </div>
-            
-            <div className="flex gap-3 flex-wrap justify-center">
-              <button
-                onClick={() => setShowNetwork(true)}
-                className="px-4 py-3 rounded-xl font-bold text-white flex items-center gap-2"
-                style={{ background: net.color }}
-              >
-                <Network className="w-4 h-4" />
-                {net.name}
+      {showNetwork && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+          <div className="bg-gray-900 border-2 border-purple-500 rounded-xl p-6 max-w-sm w-full">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-bold text-white">Select Network</h2>
+              <button onClick={() => setShowNetwork(false)} className="text-gray-400 hover:text-white">
+                <X className="w-5 h-5" />
               </button>
-              
-              {wallet ? (
-                <div className="bg-white/20 rounded-xl px-4 py-3">
-                  <span className="text-white text-sm font-medium">{wallet.substring(0, 6)}...{wallet.substring(38)}</span>
-                </div>
-              ) : (
+            </div>
+            <div className="space-y-2">
+              {Object.entries(NETWORKS).map(([key, n]) => (
                 <button
-                  onClick={() => setShowWallet(true)}
-                  className="bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-bold py-3 px-4 rounded-xl flex items-center gap-2"
+                  key={key}
+                  onClick={() => switchNetwork(key)}
+                  className="w-full text-white font-bold py-2.5 px-4 rounded-lg hover:opacity-80 flex justify-between items-center text-sm"
+                  style={{ background: n.color }}
                 >
-                  <Wallet className="w-4 h-4" />
-                  Connect
+                  <span>{n.name}</span>
+                  <span className="text-xs opacity-75">{n.fee} {n.symbol}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="max-w-5xl mx-auto">
+        <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-3">
+          <div className="text-center md:text-left">
+            <h1 className="text-2xl md:text-3xl font-bold text-white flex items-center justify-center md:justify-start gap-2">
+              <Sparkles className="w-6 h-6 text-cyan-400" />
+              NFT Card Generator
+            </h1>
+            <p className="text-gray-400 text-xs">Multi-chain • {net.fee} {net.symbol}</p>
+          </div>
+          
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowNetwork(true)}
+              className="px-3 py-1.5 rounded-lg font-bold text-white flex items-center gap-1 text-xs"
+              style={{ background: net.color }}
+            >
+              <Network className="w-3 h-3" />
+              {net.name}
+            </button>
+            
+            {wallet ? (
+              <div className="bg-black/50 rounded-lg px-3 py-1.5 border border-green-500/50">
+                <span className="text-white text-xs">{wallet.substring(0, 6)}...{wallet.substring(38)}</span>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowWallet(true)}
+                className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white font-bold py-1.5 px-3 rounded-lg flex items-center gap-1 text-xs"
+              >
+                <Wallet className="w-3 h-3" />
+                Connect
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-4">
+          <div className="space-y-3">
+            <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700">
+              <h3 className="text-white font-semibold mb-2 flex items-center gap-2 text-sm">
+                <Upload className="w-4 h-4" />
+                Media
+              </h3>
+              <input ref={fileInputRef} type="file" accept="image/*,video/*" onChange={handleMediaUpload} className="hidden" />
+              <button onClick={() => fileInputRef.current?.click()} className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white py-2 rounded-lg hover:from-cyan-600 hover:to-blue-600 text-sm font-semibold flex items-center justify-center gap-2">
+                <Camera className="w-4 h-4" />
+                Choose File
+              </button>
+              {media && mediaType === 'image' && (
+                <button onClick={convertToGif} disabled={isConverting} className="w-full mt-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white py-2 rounded-lg hover:from-purple-600 hover:to-pink-600 text-xs font-semibold flex items-center justify-center gap-1 disabled:opacity-50">
+                  <Film className="w-3 h-3" />
+                  {isConverting ? 'Converting...' : 'Convert to GIF'}
                 </button>
               )}
             </div>
-          </div>
 
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="backdrop-blur-xl bg-white/10 rounded-3xl p-6 border border-white/20">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-white">Preview</h2>
-                <button onClick={downloadCard} className="bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold py-2 px-4 rounded-xl flex items-center gap-2">
-                  <Download className="w-4 h-4" />
-                  Save
-                </button>
+            <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700">
+              <h3 className="text-white font-semibold mb-2 text-sm">Details</h3>
+              <div className="space-y-2">
+                <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-gray-700 text-white px-2 py-1.5 rounded border border-gray-600 focus:border-cyan-500 focus:outline-none text-xs" placeholder="Name" />
+                <div className="grid grid-cols-2 gap-2">
+                  <select value={rarity} onChange={(e) => setRarity(e.target.value)} className="w-full bg-gray-700 text-white px-2 py-1.5 rounded border border-gray-600 text-xs">
+                    <option>Common</option>
+                    <option>Rare</option>
+                    <option>Epic</option>
+                    <option>Legendary</option>
+                    <option>Mythic</option>
+                  </select>
+                  <div className="flex items-center gap-1">
+                    <Palette className="w-3 h-3 text-gray-400" />
+                    <input type="color" value={color} onChange={(e) => setColor(e.target.value)} className="flex-1 h-7 bg-gray-700 rounded border border-gray-600 cursor-pointer" />
+                  </div>
+                </div>
               </div>
-              <canvas ref={canvasRef} width="800" height="1200" className="w-full rounded-2xl shadow-2xl" />
             </div>
 
-            <div className="space-y-6">
-              <div
-                className={`backdrop-blur-xl bg-white/10 rounded-3xl p-6 border-2 ${dragActive ? 'border-yellow-400' : 'border-white/20 border-dashed'}`}
-                onDragEnter={handleDrag}
-                onDragLeave={handleDrag}
-                onDragOver={handleDrag}
-                onDrop={handleDrop}
-              >
-                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                  <Upload className="w-5 h-5" />
-                  Upload Media
-                </h3>
-                <input ref={fileRef} type="file" accept="image/*,video/*" onChange={(e) => e.target.files[0] && processFile(e.target.files[0])} className="hidden" />
-                <div 
-                  onClick={() => fileRef.current?.click()}
-                  className="border-2 border-dashed border-white/40 rounded-2xl p-8 text-center cursor-pointer hover:border-white/60 hover:bg-white/5"
-                >
-                  <div className="text-6xl mb-4">📸</div>
-                  <p className="text-white font-bold mb-2">Drag & Drop or Click</p>
-                  <p className="text-white/70 text-sm">Images, GIFs, Videos</p>
-                </div>
+            <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-white font-semibold text-sm">Stats</h3>
+                <button onClick={randomizeStats} className="text-cyan-400 hover:text-cyan-300 text-xs flex items-center gap-1">
+                  <Zap className="w-3 h-3" />
+                  Random
+                </button>
               </div>
-
-              <div className="backdrop-blur-xl bg-white/10 rounded-3xl p-6 border border-white/20">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                    <Palette className="w-5 h-5" />
-                    Color Theme
-                  </h3>
-                  <button
-                    onClick={() => setUseCustomColor(!useCustomColor)}
-                    className="text-sm text-white/80 hover:text-white font-semibold"
-                  >
-                    {useCustomColor ? 'Presets' : 'Custom RGB'}
-                  </button>
-                </div>
-                
-                {useCustomColor ? (
-                  <div className="space-y-3">
-                    {['r', 'g', 'b'].map(ch => (
-                      <div key={ch}>
-                        <label className="text-white text-sm font-semibold mb-1 block">{ch.toUpperCase()}: {customColor[ch]}</label>
-                        <input
-                          type="range"
-                          min="0"
-                          max="255"
-                          value={customColor[ch]}
-                          onChange={(e) => setCustomColor({...customColor, [ch]: parseInt(e.target.value)})}
-                          className="w-full"
-                        />
-                      </div>
-                    ))}
-                    <div className="h-12 rounded-xl mt-4" style={{ background: `rgb(${customColor.r},${customColor.g},${customColor.b})` }}></div>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-3 gap-3">
-                    {MYTHIC_COLORS.map((c, i) => (
-                      <button
-                        key={i}
-                        onClick={() => setColor(i)}
-                        className={`h-16 rounded-xl transition-all ${color === i ? 'ring-4 ring-white scale-110' : ''}`}
-                        style={{ background: c.primary }}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="backdrop-blur-xl bg-white/10 rounded-3xl p-6 border border-white/20">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                    <Wand2 className="w-5 h-5" />
-                    Stats
-                  </h3>
-                  <button onClick={randomize} className="text-sm text-white/80 hover:text-white font-semibold">
-                    Randomize
-                  </button>
-                </div>
-                {Object.entries(stats).map(([key, val]) => (
-                  <div key={key} className="mb-3">
-                    <label className="text-white text-sm font-semibold mb-1 block capitalize">{key}: {val}</label>
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value={val}
-                      onChange={(e) => setStats({...stats, [key]: parseInt(e.target.value)})}
-                      className="w-full"
-                    />
+              <div className="space-y-1.5">
+                {Object.entries(stats).map(([key, value]) => (
+                  <div key={key}>
+                    <div className="flex justify-between text-xs mb-0.5">
+                      <span className="text-gray-400 capitalize">{key}</span>
+                      <span className="text-white">{value}</span>
+                    </div>
+                    <input type="range" min="0" max="100" value={value} onChange={(e) => setStats({ ...stats, [key]: parseInt(e.target.value) })} className="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer" style={{ accentColor: color }} />
                   </div>
                 ))}
               </div>
+            </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <button
-                  onClick={() => setShowMetadata(true)}
-                  className="backdrop-blur-xl bg-white/20 hover:bg-white/30 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2"
-                >
-                  <Info className="w-5 h-5" />
-                  Metadata
+            <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700">
+              <h3 className="text-white font-semibold mb-2 text-sm flex items-center gap-2">
+                <Wallet className="w-4 h-4" />
+                Mint & Download
+              </h3>
+              
+              {txStatus === 'success' && (
+                <div className="mb-2 p-2 bg-green-500/20 border border-green-500 rounded-lg">
+                  <div className="flex items-center gap-2 text-green-400 text-xs">
+                    <Check className="w-3 h-3" />
+                    <span>Payment successful!</span>
+                  </div>
+                </div>
+              )}
+
+              {txStatus === 'failed' && (
+                <div className="mb-2 p-2 bg-red-500/20 border border-red-500 rounded-lg">
+                  <div className="flex items-center gap-2 text-red-400 text-xs">
+                    <X className="w-3 h-3" />
+                    <span>Payment failed</span>
+                  </div>
+                </div>
+              )}
+
+              <button
+                onClick={mintWithPayment}
+                disabled={txStatus === 'pending'}
+                className={`w-full text-white font-bold py-2 rounded-lg flex items-center justify-center gap-2 text-sm mb-2 ${txStatus === 'pending' ? 'bg-gray-600 cursor-not-allowed' : 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600'}`}
+              >
+                {txStatus === 'pending' ? (
+                  <>
+                    <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <Wallet className="w-4 h-4" />
+                    Pay {net.fee} {net.symbol}
+                  </>
+                )}
+              </button>
+
+              <div className="grid grid-cols-2 gap-2">
+                <button onClick={downloadCard} className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white py-2 rounded-lg hover:from-blue-600 hover:to-indigo-600 text-xs font-semibold flex items-center justify-center gap-1">
+                  <Download className="w-3 h-3" />
+                  Card
                 </button>
-                <button
-                  onClick={mint}
-                  className="bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2"
-                >
-                  <Zap className="w-5 h-5" />
-                  Mint NFT
+                <button onClick={downloadMetadata} className="bg-gradient-to-r from-purple-500 to-pink-500 text-white py-2 rounded-lg hover:from-purple-600 hover:to-pink-600 text-xs font-semibold flex items-center justify-center gap-1">
+                  <Download className="w-3 h-3" />
+                  JSON
                 </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
+            <h3 className="text-white font-semibold mb-3 text-sm">Preview</h3>
+            <div className="relative rounded-lg overflow-hidden" style={{ background: `linear-gradient(135deg, ${color}40, #1a1a2e)`, border: `2px solid ${color}`, boxShadow: `0 0 20px ${color}40` }}>
+              <div className="aspect-square bg-gray-900/50 flex items-center justify-center">
+                {media ? (
+                  (mediaType === 'image' || mediaType === 'gif') ? (
+                    <img src={media} alt="NFT" className="w-full h-full object-cover" />
+                  ) : mediaType === 'video' ? (
+                    <video src={media} className="w-full h-full object-cover" controls />
+                  ) : null
+                ) : (
+                  <Camera className="w-16 h-16 text-gray-600" />
+                )}
+              </div>
+              <div className="p-3 bg-gradient-to-t from-black/80 to-transparent">
+                <h2 className="text-white text-lg font-bold mb-0.5">{name}</h2>
+                <p className="text-xs mb-2" style={{ color }}>
+                  {rarity} • {net.name}
+                </p>
+                <div className="grid grid-cols-2 gap-1.5 text-xs">
+                  <div className="bg-black/40 rounded px-2 py-1.5">
+                    <span className="text-gray-400">⚔️:</span>
+                    <span className="text-white ml-1 font-semibold">{stats.attack}</span>
+                  </div>
+                  <div className="bg-black/40 rounded px-2 py-1.5">
+                    <span className="text-gray-400">🛡️:</span>
+                    <span className="text-white ml-1 font-semibold">{stats.defense}</span>
+                  </div>
+                  <div className="bg-black/40 rounded px-2 py-1.5">
+                    <span className="text-gray-400">⚡:</span>
+                    <span className="text-white ml-1 font-semibold">{stats.speed}</span>
+                  </div>
+                  <div className="bg-black/40 rounded px-2 py-1.5">
+                    <span className="text-gray-400">✨:</span>
+                    <span className="text-white ml-1 font-semibold">{stats.magic}</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
+      <canvas ref={canvasRef} className="hidden" />
     </div>
   );
-}
+};
+
+export default NFTCardGenerator;
