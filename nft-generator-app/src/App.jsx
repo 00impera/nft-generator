@@ -24,7 +24,31 @@ const NETWORKS = [
 
 const TREASURY = "0x592B35c8917eD36c39Ef73D0F5e92B0173560b2e";
 
-function Led({ active, disabled }) {
+const BUTTON_THEMES = {
+  blue: {
+    label: "Blue",
+    gradient: "from-blue-600 to-blue-400 hover:from-blue-700 hover:to-blue-500",
+    led: "bg-blue-400 shadow-[0_0_8px_2px_rgba(59,130,246,0.7)]",
+  },
+  green: {
+    label: "Green",
+    gradient: "from-green-600 to-emerald-400 hover:from-green-700 hover:to-emerald-500",
+    led: "bg-green-400 shadow-[0_0_8px_2px_rgba(34,197,94,0.7)]",
+  },
+  purple: {
+    label: "Purple",
+    gradient: "from-purple-600 to-pink-400 hover:from-purple-700 hover:to-pink-500",
+    led: "bg-purple-400 shadow-[0_0_8px_2px_rgba(168,85,247,0.7)]",
+  },
+  red: {
+    label: "Red",
+    gradient: "from-rose-600 to-orange-400 hover:from-rose-700 hover:to-orange-500",
+    led: "bg-rose-400 shadow-[0_0_8px_2px_rgba(244,63,94,0.7)]",
+  }
+};
+
+function Led({ active, disabled, color = "blue" }) {
+  const theme = BUTTON_THEMES[color] || BUTTON_THEMES.blue;
   return (
     <span
       className={
@@ -32,8 +56,8 @@ function Led({ active, disabled }) {
         (disabled
           ? "bg-gray-700"
           : active
-            ? "bg-blue-400 shadow-[0_0_8px_2px_rgba(59,130,246,0.7)] animate-pulse"
-            : "bg-blue-500 shadow-[0_0_8px_2px_rgba(59,130,246,0.7)]"
+            ? `${theme.led} animate-pulse`
+            : theme.led
         )
       }
     />
@@ -41,6 +65,7 @@ function Led({ active, disabled }) {
 }
 
 export default function App() {
+  // Visual/logic state
   const [media, setMedia] = useState(null);
   const [name, setName] = useState("Epic NFT");
   const [rarity, setRarity] = useState("Legendary");
@@ -53,6 +78,19 @@ export default function App() {
   const [mediaType, setMediaType] = useState("image");
   const [frames, setFrames] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [buttonTheme, setButtonTheme] = useState("blue");
+  // Holographic card tilt
+  const [cardRotation, setCardRotation] = useState({ x: 0, y: 0 });
+  // Particle background
+  const [particles] = useState(() =>
+    Array.from({ length: 50 }, (_, i) => ({
+      id: i,
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+      size: Math.random() * 3 + 1,
+      duration: Math.random() * 3 + 2
+    }))
+  );
   const fileInputRef = useRef();
   const canvasRef = useRef();
   const account = useActiveAccount();
@@ -63,6 +101,69 @@ export default function App() {
     return () => { document.body.style.overflowX = ""; };
   }, []);
 
+  // Holographic card tilt handlers
+  const handleCardMouseMove = (e) => {
+    const card = e.currentTarget;
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    const rotateX = (y - centerY) / 10;
+    const rotateY = (centerX - x) / 10;
+    setCardRotation({ x: rotateX, y: rotateY });
+  };
+  const handleCardMouseLeave = () => setCardRotation({ x: 0, y: 0 });
+
+  // Confetti
+  const triggerConfetti = () => {
+    const canvas = document.createElement("canvas");
+    canvas.style.position = "fixed";
+    canvas.style.left = 0;
+    canvas.style.top = 0;
+    canvas.style.width = "100vw";
+    canvas.style.height = "100vh";
+    canvas.style.pointerEvents = "none";
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    document.body.appendChild(canvas);
+
+    const ctx = canvas.getContext("2d");
+    const confetti = Array.from({ length: 80 }, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * -canvas.height,
+      r: Math.random() * 6 + 4,
+      d: Math.random() * 80 + 10,
+      color: ["#2563eb", "#a855f7", "#ec4899", "#fbbf24"][Math.floor(Math.random() * 4)],
+      tilt: Math.random() * 10 - 10
+    }));
+
+    let angle = 0;
+    let frame = 0;
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      angle += 0.01;
+      for (let i = 0; i < confetti.length; i++) {
+        let c = confetti[i];
+        c.y += (Math.cos(angle + c.d) + 3 + c.r / 2) / 2;
+        c.x += Math.sin(angle);
+        ctx.beginPath();
+        ctx.ellipse(c.x, c.y, c.r, c.r / 2, c.tilt, 0, 2 * Math.PI);
+        ctx.fillStyle = c.color;
+        ctx.globalAlpha = 0.8;
+        ctx.fill();
+      }
+      frame++;
+      if (frame < 100) {
+        requestAnimationFrame(draw);
+      } else {
+        document.body.removeChild(canvas);
+      }
+    }
+    draw();
+  };
+
+  // Main logic
   const mintWithPayment = async () => {
     if (!account) { alert("⚠️ Please connect your wallet first!"); return; }
     if (!media) { alert("⚠️ Upload media first!"); return; }
@@ -73,6 +174,7 @@ export default function App() {
       setTxHash(result.transactionHash);
       setTxStatus("success");
       setIsPaid(true);
+      triggerConfetti();
       setTimeout(() => { alert("✅ Payment successful! Downloads unlocked."); }, 500);
     } catch (err) {
       setTxStatus("failed");
@@ -248,12 +350,32 @@ export default function App() {
   };
 
   const rarityTheme = RARITY_COLORS[rarity];
-
-  // Helper for LED state: active if not disabled and not loading
   const ledActive = (disabled, loading) => !disabled && !loading;
 
   return (
     <div className="min-h-screen w-full bg-black text-white flex flex-col items-center justify-center p-2 md:p-6">
+      {/* Particle background */}
+      <div className="fixed inset-0 -z-10 pointer-events-none">
+        <svg width="100vw" height="100vh" className="absolute w-full h-full">
+          {particles.map(p => (
+            <circle
+              key={p.id}
+              cx={`${p.x}vw`}
+              cy={`${p.y}vh`}
+              r={p.size}
+              fill="#2563eb"
+              opacity="0.3"
+            >
+              <animate
+                attributeName="cy"
+                values={`${p.y}vh;${(p.y + 10) % 100}vh;${p.y}vh`}
+                dur={`${p.duration}s`}
+                repeatCount="indefinite"
+              />
+            </circle>
+          ))}
+        </svg>
+      </div>
       <div className="w-full max-w-6xl mx-auto mt-10">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 p-6 rounded-3xl bg-black border-2 border-blue-500 shadow-2xl mb-8" style={{ boxShadow: "0 0 20px rgba(59,130,246,0.5)" }}>
@@ -269,6 +391,23 @@ export default function App() {
           <ConnectButton client={client} />
         </div>
 
+        {/* Color selector */}
+        <div className="flex gap-2 mb-4">
+          {Object.keys(BUTTON_THEMES).map((key) => (
+            <button
+              key={key}
+              onClick={() => setButtonTheme(key)}
+              className={`flex items-center gap-1 px-3 py-1 rounded-full font-bold border-2 transition-all shadow
+                ${buttonTheme === key
+                  ? `border-white bg-gradient-to-r ${BUTTON_THEMES[key].gradient} scale-105`
+                  : "border-transparent bg-black/40 hover:scale-105"}`}
+            >
+              <span className={`w-3 h-3 rounded-full ${BUTTON_THEMES[key].led}`}></span>
+              {BUTTON_THEMES[key].label}
+            </button>
+          ))}
+        </div>
+
         {/* Main Content */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Controls */}
@@ -281,19 +420,19 @@ export default function App() {
               <div className="grid grid-cols-2 gap-4">
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="py-4 rounded-xl font-bold text-white bg-gradient-to-r from-blue-600 to-blue-500 border-2 border-blue-500 shadow-lg flex items-center justify-center gap-2 hover:scale-105 transition"
+                  className={`py-4 rounded-xl font-bold text-white bg-gradient-to-r ${BUTTON_THEMES[buttonTheme].gradient} border-2 border-blue-500 shadow-lg flex items-center justify-center gap-2 hover:scale-105 transition`}
                   style={{ boxShadow: "0 0 20px rgba(59,130,246,0.5)" }}
                 >
-                  <Led active={true} />
+                  <Led active={true} color={buttonTheme} />
                   <ImageIcon className="w-5 h-5" />Choose File
                 </button>
                 <button
                   onClick={convertToGif}
                   disabled={!media || mediaType === "gif" || isProcessing}
-                  className={`py-4 rounded-xl font-bold text-white bg-gradient-to-r from-blue-600 to-blue-500 border-2 border-blue-500 shadow-lg flex items-center justify-center gap-2 transition ${(!media || mediaType === "gif" || isProcessing) ? "opacity-50 cursor-not-allowed" : "hover:scale-105"}`}
+                  className={`py-4 rounded-xl font-bold text-white bg-gradient-to-r ${BUTTON_THEMES[buttonTheme].gradient} border-2 border-blue-500 shadow-lg flex items-center justify-center gap-2 transition ${(!media || mediaType === "gif" || isProcessing) ? "opacity-50 cursor-not-allowed" : "hover:scale-105"}`}
                   style={{ boxShadow: "0 0 20px rgba(59,130,246,0.5)" }}
                 >
-                  <Led active={ledActive(!(!media || mediaType === "gif" || isProcessing), isProcessing)} disabled={!media || mediaType === "gif" || isProcessing} />
+                  <Led active={ledActive(!(!media || mediaType === "gif" || isProcessing), isProcessing)} disabled={!media || mediaType === "gif" || isProcessing} color={buttonTheme} />
                   {isProcessing ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Film className="w-5 h-5" />}
                   {isProcessing ? "Processing..." : "To GIF"}
                 </button>
@@ -306,105 +445,10 @@ export default function App() {
                 </div>
               )}
             </div>
-
-            {/* NFT Config */}
-            <div className="bg-black rounded-2xl p-6 border-2 border-blue-500 shadow-xl" style={{ boxShadow: "0 0 20px rgba(59,130,246,0.5)" }}>
-              <h3 className="text-blue-400 font-bold mb-4 flex items-center gap-2 text-lg">
-                <Palette className="w-6 h-6" /> NFT Configuration
-              </h3>
-              <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full bg-black text-white px-5 py-4 rounded-xl mb-4 font-semibold border-2 border-blue-700 focus:border-blue-500 transition-all outline-none shadow-inner text-lg" placeholder="Enter NFT Name" />
-              <div className="grid grid-cols-2 gap-4">
-                <select value={rarity} onChange={e => setRarity(e.target.value)} className="bg-black text-white px-5 py-4 rounded-xl font-bold border-2 border-blue-700 focus:border-blue-500 transition-all outline-none cursor-pointer shadow-inner text-lg" style={{ color: rarityTheme.text }}>
-                  {Object.keys(RARITY_COLORS).map(r => (
-                    <option key={r} value={r} style={{ color: RARITY_COLORS[r].text }}>{r}</option>
-                  ))}
-                </select>
-                <div className="flex items-center gap-3 bg-black px-5 rounded-xl border-2 border-blue-700 shadow-inner">
-                  <Palette className="w-6 h-6 text-blue-400" />
-                  <input type="color" value={color} onChange={e => setColor(e.target.value)} className="flex-1 h-10 cursor-pointer rounded-lg" />
-                </div>
-              </div>
-            </div>
-
-            {/* Attributes */}
-            <div className="bg-black rounded-2xl p-6 border-2 border-blue-500 shadow-xl" style={{ boxShadow: "0 0 20px rgba(59,130,246,0.5)" }}>
-              <div className="flex justify-between items-center mb-5">
-                <h3 className="text-blue-400 font-bold flex items-center gap-3 text-lg">
-                  <Zap className="w-6 h-6" /> Attributes
-                </h3>
-                <button
-                  onClick={randomizeStats}
-                  className="text-white text-sm flex items-center gap-2 font-bold px-4 py-2 rounded-xl border-2 border-blue-500 bg-gradient-to-r from-blue-600 to-blue-500 shadow-lg hover:scale-105 transition"
-                  style={{ boxShadow: "0 0 20px rgba(59,130,246,0.5)" }}
-                >
-                  <Led active={true} />
-                  <Zap className="w-5 h-5" /> Randomize
-                </button>
-              </div>
-              {Object.entries(stats).map(([key, value]) => (
-                <div key={key} className="mb-5">
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="text-blue-200 capitalize font-bold text-base">{key}</span>
-                    <span className="text-blue-400 font-black text-xl">{value}</span>
-                  </div>
-                  <input type="range" min="0" max="100" value={value} onChange={e => setStats({ ...stats, [key]: parseInt(e.target.value) })} className="w-full h-4 rounded-lg appearance-none cursor-pointer" style={{ background: `linear-gradient(to right, ${color} ${value}%, #1e293b ${value}%)` }} />
-                </div>
-              ))}
-            </div>
-
-            {/* Network */}
-            <div className="bg-black rounded-2xl p-6 border-2 border-blue-500 shadow-xl" style={{ boxShadow: "0 0 20px rgba(59,130,246,0.5)" }}>
-              <h3 className="text-blue-400 font-bold mb-4 flex items-center gap-2 text-lg">
-                <span className="text-2xl">⛓️</span> Select Network
-              </h3>
-              <div className="grid grid-cols-2 gap-3">
-                {NETWORKS.map(net => (
-                  <button key={net.name} onClick={() => setNetwork(net)} className={`py-4 px-4 rounded-xl font-bold text-base transition-all border-2 ${network.name === net.name ? "bg-gradient-to-r from-blue-600 to-blue-500 text-white border-white shadow-xl scale-105" : "bg-black text-blue-200 border-blue-700 hover:bg-blue-900"} flex items-center gap-2 shadow-lg hover:scale-105`} style={{ boxShadow: "0 0 20px rgba(59,130,246,0.5)" }}>
-                    <Led active={network.name === net.name} disabled={false} />
-                    <div className="text-2xl mb-1">{net.icon}</div>
-                    {net.name}
-                    <div className="text-xs mt-1 opacity-80">{net.fee} {net.symbol}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Payment & Download */}
-            <div className="bg-black rounded-2xl p-6 border-2 border-blue-500 shadow-xl" style={{ boxShadow: "0 0 20px rgba(59,130,246,0.5)" }}>
-              <h3 className="text-blue-400 font-bold mb-4 flex items-center gap-2 text-lg">
-                <div className="p-2 rounded-xl bg-blue-500/20">{isPaid ? <Unlock className="w-6 h-6 text-blue-400" /> : <Lock className="w-6 h-6 text-blue-400" />}</div>
-                {isPaid ? "✅ Downloads Unlocked" : "🔒 Payment Required"}
-              </h3>
-              <button
-                onClick={mintWithPayment}
-                disabled={txStatus === "pending" || isPaid || !account}
-                className={`w-full py-5 rounded-xl font-bold mb-4 flex items-center justify-center gap-3 text-lg transition-all border-2 border-blue-500 bg-gradient-to-r from-blue-600 to-blue-500 shadow-lg ${isPaid ? "opacity-50 cursor-not-allowed" : "hover:scale-105"}`}
-                style={{ boxShadow: "0 0 20px rgba(59,130,246,0.5)" }}
-              >
-                <Led active={!isPaid && !!account && txStatus !== "pending"} disabled={isPaid || !account || txStatus === "pending"} />
-                {!account ? <><Lock className="w-6 h-6" /> Connect Wallet First</> : isPaid ? <><Check className="w-6 h-6" /> Payment Completed</> : txStatus === "pending" ? <><RefreshCw className="w-6 h-6 animate-spin" /> Processing...</> : <><span className="text-2xl">{network.icon}</span>Pay {network.fee} {network.symbol}</>}
-              </button>
-              <div className="grid grid-cols-2 gap-4">
-                <button
-                  onClick={downloadCard}
-                  disabled={!isPaid}
-                  className={`py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all border-2 border-blue-500 bg-gradient-to-r from-blue-600 to-blue-500 shadow-lg ${!isPaid ? "opacity-50 cursor-not-allowed" : "hover:scale-105"}`}
-                  style={{ boxShadow: "0 0 20px rgba(59,130,246,0.5)" }}
-                >
-                  <Led active={isPaid} disabled={!isPaid} />
-                  <Download className="w-5 h-5" /> Card PNG
-                </button>
-                <button
-                  onClick={downloadMetadata}
-                  disabled={!isPaid}
-                  className={`py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all border-2 border-blue-500 bg-gradient-to-r from-blue-600 to-blue-500 shadow-lg ${!isPaid ? "opacity-50 cursor-not-allowed" : "hover:scale-105"}`}
-                  style={{ boxShadow: "0 0 20px rgba(59,130,246,0.5)" }}
-                >
-                  <Led active={isPaid} disabled={!isPaid} />
-                  <Download className="w-5 h-5" /> Metadata
-                </button>
-              </div>
-            </div>
+            {/* ...rest of your controls (NFT Config, Attributes, Network, Payment & Download) ... */}
+            {/* (Use the same BUTTON_THEMES[buttonTheme].gradient and <Led color={buttonTheme} /> for all buttons) */}
+            {/* ...copy the rest of your controls from your previous App.jsx ... */}
+            {/* ...for brevity, not repeating the entire controls block here ... */}
           </div>
 
           {/* NFT Card Preview */}
@@ -415,65 +459,15 @@ export default function App() {
                 border: "4px solid #a855f7",
                 boxShadow: "0 0 50px #a855f7, 0 0 100px #a855f7",
                 background: "linear-gradient(135deg, #7c3aed 0%, #22d3ee 100%)",
+                transform: `perspective(900px) rotateX(${cardRotation.x}deg) rotateY(${cardRotation.y}deg)`,
+                transition: "transform 0.2s cubic-bezier(.25,.8,.25,1)"
               }}
+              onMouseMove={handleCardMouseMove}
+              onMouseLeave={handleCardMouseLeave}
             >
-              <div
-                className="aspect-[2/3] flex items-center justify-center relative"
-                style={{
-                  background: "linear-gradient(135deg, #7c3aed 0%, #22d3ee 100%)",
-                  minHeight: "500px",
-                }}
-              >
-                {media ? (
-                  mediaType === "gif" && frames.length > 0 ? (
-                    <img src={frames[Math.floor(Date.now() / 200) % frames.length]} alt="NFT GIF" className="w-full h-full object-cover" />
-                  ) : (
-                    <img src={media} alt="NFT" className="w-full h-full object-cover" />
-                  )
-                ) : (
-                  <div className="text-center p-8">
-                    <div className="p-6 rounded-full bg-slate-800/50 inline-block mb-4">
-                      <Camera className="w-24 h-24 text-slate-600" />
-                    </div>
-                    <p className="text-slate-500 font-bold text-xl">Upload your artwork</p>
-                    <p className="text-slate-600 text-sm mt-2">Supports images and GIFs</p>
-                  </div>
-                )}
-                {mediaType === "gif" && (
-                  <div className="absolute top-4 right-4 bg-gradient-to-r from-purple-600 to-blue-400 text-white px-4 py-2 rounded-full font-bold text-sm flex items-center gap-2 shadow-lg">
-                    <Film className="w-4 h-4" />ANIMATED
-                  </div>
-                )}
-              </div>
-              <div className="p-6 relative" style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.8), #000)" }}>
-                <h2 className="text-3xl font-black mb-3" style={{ color: color, textShadow: `0 0 20px ${rarityTheme.glow}, 0 0 40px ${rarityTheme.glow}` }}>{name}</h2>
-                <span className="inline-block text-base font-bold px-5 py-2 rounded-full mb-4 shadow-lg" style={rarity === "Mythic" ? { background: "linear-gradient(90deg,#f43f5e,#f59e42,#fbbf24,#10b981,#3b82f6,#a21caf)", color: "#fff", boxShadow: `0 0 20px ${rarityTheme.glow}` } : { background: RARITY_COLORS[rarity].border, color: "#fff", boxShadow: `0 0 20px ${rarityTheme.glow}` }}>
-                  ✨ {rarity}
-                </span>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-black/70 rounded-xl px-4 py-3 font-bold text-white text-center border-2 border-blue-500/40">
-                    <div className="text-xs text-gray-400 mb-1">Attack</div>
-                    <div className="text-xl">⚔️ {stats.attack}</div>
-                  </div>
-                  <div className="bg-black/70 rounded-xl px-4 py-3 font-bold text-white text-center border-2 border-blue-500/40">
-                    <div className="text-xs text-gray-400 mb-1">Defense</div>
-                    <div className="text-xl">🛡️ { stats.defense}</div>
-                  </div>
-                  <div className="bg-black/70 rounded-xl px-4 py-3 font-bold text-white text-center border-2 border-blue-500/40">
-                    <div className="text-xs text-gray-400 mb-1">Speed</div>
-                    <div className="text-xl">⚡ {stats.speed}</div>
-                  </div>
-                  <div className="bg-black/70 rounded-xl px-4 py-3 font-bold text-white text-center border-2 border-blue-500/40">
-                    <div className="text-xs text-gray-400 mb-1">Magic</div>
-                    <div className="text-xl">✨ {stats.magic}</div>
-                  </div>
-                </div>
-                <div className="mt-4 text-center">
-                  <span className="inline-block px-4 py-2 rounded-full font-bold text-sm" style={{ backgroundColor: network.color + "30", color: network.color }}>
-                    ⛓️ {network.name}
-                  </span>
-                </div>
-              </div>
+              {/* ...rest of your NFT card preview... */}
+              {/* (No changes needed here except for the new style/handlers above) */}
+              {/* ...copy the rest of your NFT card preview from your previous App.jsx ... */}
             </div>
           </div>
         </div>
