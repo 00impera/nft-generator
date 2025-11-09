@@ -53,43 +53,6 @@ function Led({ active, disabled, color = "#2563eb", glow = "rgba(37,99,235,0.7)"
   );
 }
 
-function DiamondLogo({ color, glow }) {
-  return (
-    <div className="relative flex items-center justify-center" style={{ width: 64, height: 64 }}>
-      <svg width="56" height="56" viewBox="0 0 56 56" className="z-10" style={{ filter: `drop-shadow(0 0 16px ${glow})` }}>
-        <defs>
-          <linearGradient id="diamond-grad" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor={color} />
-            <stop offset="100%" stopColor="#fff" />
-          </linearGradient>
-        </defs>
-        <polygon
-          points="28,4 52,20 44,52 12,52 4,20"
-          fill="url(#diamond-grad)"
-          stroke={color}
-          strokeWidth="2"
-        />
-        <polygon
-          points="28,8 46,20 40,48 16,48 10,20"
-          fill="rgba(255,255,255,0.15)"
-        />
-      </svg>
-      <Led active color={color} glow={glow} delay="0s" style={{ position: "absolute", left: 0, top: 0 }} />
-      <Led active color={color} glow={glow} delay="0.3s" style={{ position: "absolute", right: 0, top: 0 }} />
-      <Led active color={color} glow={glow} delay="0.6s" style={{ position: "absolute", left: 0, bottom: 0 }} />
-      <Led active color={color} glow={glow} delay="0.9s" style={{ position: "absolute", right: 0, bottom: 0 }} />
-      <span
-        className="absolute inset-0 rounded-full pointer-events-none"
-        style={{
-          boxShadow: `0 0 32px 8px ${glow}`,
-          opacity: 0.5,
-          zIndex: 0
-        }}
-      />
-    </div>
-  );
-}
-
 export default function App() {
   const [media, setMedia] = useState(null);
   const [name, setName] = useState("Epic NFT");
@@ -105,15 +68,6 @@ export default function App() {
   const [frames, setFrames] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [cardRotation, setCardRotation] = useState({ x: 0, y: 0 });
-  const [particles] = useState(() =>
-    Array.from({ length: 50 }, (_, i) => ({
-      id: i,
-      x: Math.random() * 100,
-      y: Math.random() * 100,
-      size: Math.random() * 3 + 1,
-      duration: Math.random() * 3 + 2
-    }))
-  );
   const fileInputRef = useRef();
   const canvasRef = useRef();
   const account = useActiveAccount();
@@ -137,53 +91,6 @@ export default function App() {
   };
   const handleCardMouseLeave = () => setCardRotation({ x: 0, y: 0 });
 
-  const triggerConfetti = () => {
-    const canvas = document.createElement("canvas");
-    canvas.style.position = "fixed";
-    canvas.style.left = 0;
-    canvas.style.top = 0;
-    canvas.style.width = "100vw";
-    canvas.style.height = "100vh";
-    canvas.style.pointerEvents = "none";
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    document.body.appendChild(canvas);
-
-    const ctx = canvas.getContext("2d");
-    const confetti = Array.from({ length: 80 }, () => ({
-      x: Math.random() * canvas.width,
-      y: Math.random() * -canvas.height,
-      r: Math.random() * 6 + 4,
-      d: Math.random() * 80 + 10,
-      color: [color, "#a855f7", "#ec4899", "#fbbf24"][Math.floor(Math.random() * 4)],
-      tilt: Math.random() * 10 - 10
-    }));
-
-    let angle = 0;
-    let frame = 0;
-    function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      angle += 0.01;
-      for (let i = 0; i < confetti.length; i++) {
-        let c = confetti[i];
-        c.y += (Math.cos(angle + c.d) + 3 + c.r / 2) / 2;
-        c.x += Math.sin(angle);
-        ctx.beginPath();
-        ctx.ellipse(c.x, c.y, c.r, c.r / 2, c.tilt, 0, 2 * Math.PI);
-        ctx.fillStyle = c.color;
-        ctx.globalAlpha = 0.8;
-        ctx.fill();
-      }
-      frame++;
-      if (frame < 100) {
-        requestAnimationFrame(draw);
-      } else {
-        document.body.removeChild(canvas);
-      }
-    }
-    draw();
-  };
-
   const mintWithPayment = async () => {
     if (!account) { alert("⚠️ Please connect your wallet first!"); return; }
     if (!media) { alert("⚠️ Upload media first!"); return; }
@@ -194,7 +101,6 @@ export default function App() {
       setTxHash(result.transactionHash);
       setTxStatus("success");
       setIsPaid(true);
-      triggerConfetti();
       setTimeout(() => { alert("✅ Payment successful! Downloads unlocked."); }, 500);
     } catch (err) {
       setTxStatus("failed");
@@ -254,7 +160,9 @@ export default function App() {
   const downloadMetadata = () => {
     if (!isPaid) { alert("🔒 Please complete payment first!"); return; }
     const metadata = {
-      name, description: `${rarity} NFT on ${network.name}`, image: media || "ipfs://...",
+      name,
+      description: `${rarity} NFT on ${network.name}`,
+      image: media || "ipfs://...",
       animation_url: mediaType === "gif" ? media : undefined,
       attributes: [
         { trait_type: "Rarity", value: rarity },
@@ -264,7 +172,8 @@ export default function App() {
         { trait_type: "Magic", value: stats.magic },
         { trait_type: "Type", value: mediaType.toUpperCase() }
       ],
-      transaction: txHash, network: network.name, created_at: new Date().toISOString()
+      transaction: txHash,
+      network: network.name
     };
     const blob = new Blob([JSON.stringify(metadata, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -279,80 +188,95 @@ export default function App() {
     if (!isPaid) { alert("🔒 Please complete payment first!"); return; }
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
-    canvas.width = 600;
-    canvas.height = 900;
+    canvas.width = 500;
+    canvas.height = 700;
     const rarityTheme = RARITY_COLORS[rarity];
-    const bgGradient = ctx.createLinearGradient(0, 0, 0, 900);
-    if (rarity === "Mythic") {
-      bgGradient.addColorStop(0, "#ec4899");
-      bgGradient.addColorStop(0.5, "#8b5cf6");
-      bgGradient.addColorStop(1, "#3b82f6");
-    } else {
-      bgGradient.addColorStop(0, rarityTheme.border);
-      bgGradient.addColorStop(1, "#000");
-    }
-    ctx.fillStyle = bgGradient;
-    ctx.fillRect(0, 0, 600, 900);
+    ctx.fillStyle = rarityTheme.bg;
+    ctx.fillRect(0, 0, 500, 700);
+
+    const gradient = ctx.createLinearGradient(0, 0, 0, 700);
+    gradient.addColorStop(0, "rgba(0,0,0,0.3)");
+    gradient.addColorStop(1, "rgba(0,0,0,0.8)");
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 500, 700);
+
     ctx.strokeStyle = color;
-    ctx.lineWidth = 12;
+    ctx.lineWidth = 10;
     ctx.shadowColor = rarityTheme.glow;
-    ctx.shadowBlur = 30;
-    ctx.strokeRect(15, 15, 570, 870);
+    ctx.shadowBlur = 20;
+    ctx.strokeRect(10, 10, 480, 680);
     ctx.shadowBlur = 0;
+
     if (media) {
       const img = new window.Image();
       img.onload = () => {
         ctx.save();
         ctx.beginPath();
-        ctx.roundRect(50, 50, 500, 400, 25);
+        ctx.roundRect(40, 40, 420, 300, 20);
         ctx.clip();
-        ctx.drawImage(img, 50, 50, 500, 400);
+        ctx.drawImage(img, 40, 40, 420, 300);
         ctx.restore();
+
         ctx.strokeStyle = color;
-        ctx.lineWidth = 4;
-        ctx.shadowColor = rarityTheme.glow;
-        ctx.shadowBlur = 20;
+        ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.roundRect(50, 50, 500, 400, 25);
+        ctx.roundRect(40, 40, 420, 300, 20);
         ctx.stroke();
-        ctx.shadowBlur = 0;
+
         drawText();
       };
       img.src = media;
-    } else { drawText(); }
+    } else {
+      drawText();
+    }
+
     function drawText() {
-      ctx.font = "bold 48px Arial";
+      ctx.font = "bold 36px 'Arial Black', Arial";
       ctx.fillStyle = color;
       ctx.textAlign = "center";
-      ctx.shadowColor = "rgba(0,0,0,0.9)";
+      ctx.shadowColor = "rgba(0,0,0,0.8)";
+      ctx.shadowBlur = 10;
+      ctx.fillText(name, 250, 390);
+
       ctx.shadowBlur = 15;
-      ctx.fillText(name, 300, 520);
-      ctx.shadowBlur = 20;
-      ctx.font = "bold 28px Arial";
+      ctx.font = "bold 22px Arial";
       if (rarity === "Mythic") {
-        const grad = ctx.createLinearGradient(200, 0, 400, 0);
+        const grad = ctx.createLinearGradient(150, 0, 350, 0);
         grad.addColorStop(0, "#f43f5e");
-        grad.addColorStop(0.25, "#f59e42");
-        grad.addColorStop(0.5, "#fbbf24");
-        grad.addColorStop(0.75, "#10b981");
+        grad.addColorStop(0.2, "#f59e42");
+        grad.addColorStop(0.4, "#fbbf24");
+        grad.addColorStop(0.6, "#10b981");
+        grad.addColorStop(0.8, "#3b82f6");
         grad.addColorStop(1, "#a21caf");
         ctx.fillStyle = grad;
-      } else { ctx.fillStyle = rarityTheme.border; }
-      ctx.fillText(`✨ ${rarity} ✨`, 300, 580);
-      ctx.shadowBlur = 8;
-      ctx.font = "bold 32px Arial";
+      } else {
+        ctx.fillStyle = RARITY_COLORS[rarity].border;
+      }
+
+      ctx.fillText(`✨ ${rarity} ✨`, 250, 435);
+
+      ctx.shadowBlur = 5;
+      ctx.font = "bold 24px Arial";
       ctx.fillStyle = "#fff";
-      ctx.fillText(`⚔️ ${stats.attack}`, 150, 660);
-      ctx.fillText(`🛡️ ${ stats.defense}`, 450, 660);
-      ctx.fillText(`⚡ ${stats.speed}`, 150, 730);
-      ctx.fillText(`✨ ${stats.magic}`, 450, 730);
-      ctx.font = "bold 22px Arial";
-      ctx.fillStyle = mediaType === "gif" ? "#ec4899" : "#10b981";
-      ctx.fillText(mediaType === "gif" ? "🎬 ANIMATED" : "🖼️ STATIC", 300,  810);
-      ctx.font = "bold 26px Arial";
+
+      const statY = 490;
+      const spacing = 50;
+
+      ctx.fillText(`⚔️ ATK: ${stats.attack}`, 130, statY);
+      ctx.fillText(`🛡️ DEF: ${stats.defense}`, 370, statY);
+      ctx.fillText(`⚡ SPD: ${stats.speed}`, 130, statY + spacing);
+      ctx.fillText(`✨ MAG: ${stats.magic}`, 370, statY + spacing);
+
+      ctx.font = "bold 18px Arial";
+      ctx.fillStyle = mediaType === "gif" ? "#ff00ff" : "#00ff00";
+      ctx.fillText(mediaType === "gif" ? "🎬 ANIMATED" : "🖼️ STATIC", 250, 600);
+
+      ctx.font = "bold 20px Arial";
       ctx.fillStyle = network.color;
-      ctx.fillText(`${network.icon} ${network.name}`, 300, 855);
+      ctx.fillText(`⛓️ ${network.name}`, 250, 645);
+
       ctx.shadowBlur = 0;
+
       const link = document.createElement("a");
       link.download = `${name.replace(/\s+/g, "_")}_card.png`;
       link.href = canvas.toDataURL("image/png");
@@ -370,37 +294,17 @@ export default function App() {
   };
 
   const rarityTheme = RARITY_COLORS[rarity];
-  const ledActive = (disabled, loading) => !disabled && !loading;
 
   return (
     <div className="min-h-screen w-full bg-black text-white flex flex-col items-center justify-center p-2 md:p-6">
-      {/* Particle background */}
-      <div className="fixed inset-0 -z-10 pointer-events-none">
-        <svg width="100vw" height="100vh" className="absolute w-full h-full">
-          {particles.map(p => (
-            <circle
-              key={p.id}
-              cx={`${p.x}vw`}
-              cy={`${p.y}vh`}
-              r={p.size}
-              fill={color}
-              opacity="0.3"
-            >
-              <animate
-                attributeName="cy"
-                values={`${p.y}vh;${(p.y + 10) % 100}vh;${p.y}vh`}
-                dur={`${p.duration}s`}
-                repeatCount="indefinite"
-              />
-            </circle>
-          ))}
-        </svg>
-      </div>
       <div className="w-full max-w-6xl mx-auto mt-10">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 p-6 rounded-3xl bg-black border-2 border-blue-500 shadow-2xl mb-8" style={{ boxShadow: `0 0 20px ${glow}` }}>
           <div className="flex items-center gap-4">
-            <DiamondLogo color={color} glow={glow} />
+            <div className="p-3 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 shadow-xl">
+              {/* You can add a diamond SVG or logo here */}
+              <Camera className="w-8 h-8 text-white" />
+            </div>
             <div>
               <h1 className="text-3xl md:text-4xl font-black" style={{ color }}>NFT Generator Pro</h1>
               <p className="text-sm" style={{ color: "#60a5fa" }}>Create, Customize & Mint NFTs</p>
@@ -439,6 +343,90 @@ export default function App() {
 
         {/* Main Content */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* NFT Card Preview (always visible) */}
+          <div className="flex justify-center items-start">
+            <div
+              className="rounded-3xl overflow-hidden w-full max-w-md shadow-2xl relative"
+              style={{
+                border: `4px solid ${color}`,
+                boxShadow: `0 0 50px ${glow}, 0 0 100px ${glow}`,
+                background: "linear-gradient(135deg, #7c3aed 0%, #22d3ee 100%)",
+                transform: `perspective(900px) rotateX(${cardRotation.x}deg) rotateY(${cardRotation.y}deg)`,
+                transition: "transform 0.2s cubic-bezier(.25,.8,.25,1)"
+              }}
+              onMouseMove={handleCardMouseMove}
+              onMouseLeave={handleCardMouseLeave}
+            >
+              {/* Locked overlay */}
+              {!isPaid && (
+                <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-20">
+                  <Lock className="w-16 h-16 text-blue-500 animate-pulse mb-4" />
+                  <p className="text-lg font-bold text-blue-300">Unlock this NFT card by paying</p>
+                </div>
+              )}
+              <div
+                className="aspect-[2/3] flex items-center justify-center relative"
+                style={{
+                  minHeight: "500px"
+                }}
+              >
+                {media ? (
+                  mediaType === "gif" && frames.length > 0 ? (
+                    <img
+                      src={frames[Math.floor(Date.now() / 200) % frames.length]}
+                      alt="NFT GIF"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <img src={media} alt="NFT" className="w-full h-full object-cover" />
+                  )
+                ) : (
+                  <div className="text-center p-8">
+                    <div className="p-6 rounded-full bg-slate-800/50 inline-block mb-4">
+                      <Camera className="w-24 h-24 text-slate-600" />
+                    </div>
+                    <p className="text-slate-500 font-bold text-xl">Upload your artwork</p>
+                    <p className="text-slate-600 text-sm mt-2">Supports images and GIFs</p>
+                  </div>
+                )}
+                {mediaType === "gif" && (
+                  <div className="absolute top-4 right-4 bg-gradient-to-r from-purple-600 to-blue-400 text-white px-4 py-2 rounded-full font-bold text-sm flex items-center gap-2 shadow-lg">
+                    <Film className="w-4 h-4" />ANIMATED
+                  </div>
+                )}
+              </div>
+              <div className="p-6 relative" style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.8), #000)" }}>
+                <h2 className="text-3xl font-black mb-3" style={{ color, textShadow: `0 0 20px ${rarityTheme.glow}, 0 0 40px ${rarityTheme.glow}` }}>{name}</h2>
+                <span className="inline-block text-base font-bold px-5 py-2 rounded-full mb-4 shadow-lg" style={rarity === "Mythic" ? { background: "linear-gradient(90deg,#f43f5e,#f59e42,#fbbf24,#10b981,#3b82f6,#a21caf)", color: "#fff", boxShadow: `0 0 20px ${rarityTheme.glow}` } : { background: RARITY_COLORS[rarity].border, color: "#fff", boxShadow: `0 0 20px ${rarityTheme.glow}` }}>
+                  ✨ {rarity}
+                </span>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-black/70 rounded-xl px-4 py-3 font-bold text-white text-center border-2 border-blue-500/40">
+                    <div className="text-xs text-gray-400 mb-1">Attack</div>
+                    <div className="text-xl">⚔️ {stats.attack}</div>
+                  </div>
+                  <div className="bg-black/70 rounded-xl px-4 py-3 font-bold text-white text-center border-2 border-blue-500/40">
+                    <div className="text-xs text-gray-400 mb-1">Defense</div>
+                    <div className="text-xl">🛡️ {stats.defense}</div>
+                  </div>
+                  <div className="bg-black/70 rounded-xl px-4 py-3 font-bold text-white text-center border-2 border-blue-500/40">
+                    <div className="text-xs text-gray-400 mb-1">Speed</div>
+                    <div className="text-xl">⚡ {stats.speed}</div>
+                  </div>
+                  <div className="bg-black/70 rounded-xl px-4 py-3 font-bold text-white text-center border-2 border-blue-500/40">
+                    <div className="text-xs text-gray-400 mb-1">Magic</div>
+                    <div className="text-xl">✨ {stats.magic}</div>
+                  </div>
+                </div>
+                <div className="mt-4 text-center">
+                  <span className="inline-block px-4 py-2 rounded-full font-bold text-sm" style={{ backgroundColor: network.color + "30", color: network.color }}>
+                    ⛓️ {network.name}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Controls */}
           <div className="space-y-6">
             {/* Upload */}
@@ -469,7 +457,7 @@ export default function App() {
                     borderColor: color
                   }}
                 >
-                  <Led active={ledActive(!(!media || mediaType === "gif" || isProcessing), isProcessing)} disabled={!media || mediaType === "gif" || isProcessing} color={color} glow={glow} />
+                  <Led active={!(!media || mediaType === "gif" || isProcessing)} color={color} glow={glow} />
                   {isProcessing ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Film className="w-5 h-5" />}
                   {isProcessing ? "Processing..." : "To GIF"}
                 </button>
@@ -482,24 +470,120 @@ export default function App() {
                 </div>
               )}
             </div>
-            {/* ...repeat the same color/glow logic for all other buttons and LEDs in your controls... */}
-          </div>
 
-          {/* NFT Card Preview */}
-          <div className="flex justify-center items-start">
-            <div
-              className="rounded-3xl overflow-hidden w-full max-w-md shadow-2xl"
-              style={{
-                border: `4px solid ${color}`,
-                boxShadow: `0 0 50px ${glow}, 0 0 100px ${glow}`,
-                background: "linear-gradient(135deg, #7c3aed 0%, #22d3ee 100%)",
-                transform: `perspective(900px) rotateX(${cardRotation.x}deg) rotateY(${cardRotation.y}deg)`,
-                transition: "transform 0.2s cubic-bezier(.25,.8,.25,1)"
-              }}
-              onMouseMove={handleCardMouseMove}
-              onMouseLeave={handleCardMouseLeave}
-            >
-              {/* ...rest of your NFT card preview... */}
+            {/* NFT Config */}
+            <div className="bg-black rounded-2xl p-6 border-2 border-blue-500 shadow-xl" style={{ boxShadow: `0 0 20px ${glow}` }}>
+              <h3 className="font-bold mb-4 flex items-center gap-2 text-lg" style={{ color }}>
+                <Palette className="w-6 h-6" /> NFT Configuration
+              </h3>
+              <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full bg-black text-white px-5 py-4 rounded-xl mb-4 font-semibold border-2 border-blue-700 focus:border-blue-500 transition-all outline-none shadow-inner text-lg" placeholder="Enter NFT Name" />
+              <div className="grid grid-cols-2 gap-4">
+                <select value={rarity} onChange={e => setRarity(e.target.value)} className="bg-black text-white px-5 py-4 rounded-xl font-bold border-2 border-blue-700 focus:border-blue-500 transition-all outline-none cursor-pointer shadow-inner text-lg" style={{ color: RARITY_COLORS[rarity].text }}>
+                  {Object.keys(RARITY_COLORS).map(r => (
+                    <option key={r} value={r} style={{ color: RARITY_COLORS[r].text }}>{r}</option>
+                  ))}
+                </select>
+                <div className="flex items-center gap-3 bg-black px-5 rounded-xl border-2 border-blue-700 shadow-inner">
+                  <Palette className="w-6 h-6 text-blue-400" />
+                  <input type="color" value={color} onChange={e => setColor(e.target.value)} className="flex-1 h-10 cursor-pointer rounded-lg" />
+                </div>
+              </div>
+            </div>
+
+            {/* Attributes */}
+            <div className="bg-black rounded-2xl p-6 border-2 border-blue-500 shadow-xl" style={{ boxShadow: `0 0 20px ${glow}` }}>
+              <div className="flex justify-between items-center mb-5">
+                <h3 className="font-bold flex items-center gap-3 text-lg" style={{ color }}>
+                  <Zap className="w-6 h-6" /> Attributes
+                </h3>
+                <button
+                  onClick={randomizeStats}
+                  className="text-white text-sm flex items-center gap-2 font-bold px-4 py-2 rounded-xl border-2 border-blue-500 bg-gradient-to-r"
+                  style={{
+                    background: `linear-gradient(90deg, ${color} 0%, #000 100%)`,
+                    boxShadow: `0 0 20px ${glow}`,
+                    borderColor: color
+                  }}
+                >
+                  <Led active={true} color={color} glow={glow} />
+                  <Zap className="w-5 h-5" /> Randomize
+                </button>
+              </div>
+              {Object.entries(stats).map(([key, value]) => (
+                <div key={key} className="mb-5">
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="text-blue-200 capitalize font-bold text-base">{key}</span>
+                    <span className="text-blue-400 font-black text-xl">{value}</span>
+                  </div>
+                  <input type="range" min="0" max="100" value={value} onChange={e => setStats({ ...stats, [key]: parseInt(e.target.value) })} className="w-full h-4 rounded-lg appearance-none cursor-pointer" style={{ background: `linear-gradient(to right, ${color} ${value}%, #1e293b ${value}%)` }} />
+                </div>
+              ))}
+            </div>
+
+            {/* Network */}
+            <div className="bg-black rounded-2xl p-6 border-2 border-blue-500 shadow-xl" style={{ boxShadow: `0 0 20px ${glow}` }}>
+              <h3 className="font-bold mb-4 flex items-center gap-2 text-lg" style={{ color }}>
+                <span className="text-2xl">⛓️</span> Select Network
+              </h3>
+              <div className="grid grid-cols-2 gap-3">
+                {NETWORKS.map(net => (
+                  <button key={net.name} onClick={() => setNetwork(net)} className={`py-4 px-4 rounded-xl font-bold text-base transition-all border-2 ${network.name === net.name ? "bg-gradient-to-r text-white border-white shadow-xl scale-105" : "bg-black text-blue-200 border-blue-700 hover:bg-blue-900"} flex items-center gap-2 shadow-lg hover:scale-105`} style={{ boxShadow: `0 0 20px ${glow}` }}>
+                    <Led active={network.name === net.name} color={color} glow={glow} />
+                    <div className="text-2xl mb-1">{net.icon}</div>
+                    {net.name}
+                    <div className="text-xs mt-1 opacity-80">{net.fee} {net.symbol}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Payment & Download */}
+            <div className="bg-black rounded-2xl p-6 border-2 border-blue-500 shadow-xl" style={{ boxShadow: `0 0 20px ${glow}` }}>
+              <h3 className="font-bold mb-4 flex items-center gap-2 text-lg" style={{ color }}>
+                <div className="p-2 rounded-xl bg-blue-500/20">{isPaid ? <Unlock className="w-6 h-6 text-blue-400" /> : <Lock className="w-6 h-6 text-blue-400" />}</div>
+                {isPaid ? "✅ Downloads Unlocked" : "🔒 Payment Required"}
+              </h3>
+              <button
+                onClick={mintWithPayment}
+                disabled={txStatus === "pending" || isPaid || !account}
+                className={`w-full py-5 rounded-xl font-bold mb-4 flex items-center justify-center gap-3 text-lg transition-all border-2 bg-gradient-to-r shadow-lg ${isPaid ? "opacity-50 cursor-not-allowed" : "hover:scale-105"}`}
+                style={{
+                  background: `linear-gradient(90deg, ${color} 0%, #000 100%)`,
+                  boxShadow: `0 0 20px ${glow}`,
+                  borderColor: color
+                }}
+              >
+                <Led active={!isPaid && !!account && txStatus !== "pending"} disabled={isPaid || !account || txStatus === "pending"} color={color} glow={glow} />
+                {!account ? <><Lock className="w-6 h-6" /> Connect Wallet First</> : isPaid ? <><Check className="w-6 h-6" /> Payment Completed</> : txStatus === "pending" ? <><RefreshCw className="w-6 h-6 animate-spin" /> Processing...</> : <><span className="text-2xl">{network.icon}</span>Pay {network.fee} {network.symbol}</>}
+              </button>
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  onClick={downloadCard}
+                  disabled={!isPaid}
+                  className={`py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all border-2 bg-gradient-to-r shadow-lg ${!isPaid ? "opacity-50 cursor-not-allowed" : "hover:scale-105"}`}
+                  style={{
+                    background: `linear-gradient(90deg, ${color} 0%, #000 100%)`,
+                    boxShadow: `0 0 20px ${glow}`,
+                    borderColor: color
+                  }}
+                >
+                  <Led active={isPaid} disabled={!isPaid} color={color} glow={glow} />
+                  <Download className="w-5 h-5" /> Card PNG
+                </button>
+                <button
+                  onClick={downloadMetadata}
+                  disabled={!isPaid}
+                  className={`py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all border-2 bg-gradient-to-r shadow-lg ${!isPaid ? "opacity-50 cursor-not-allowed" : "hover:scale-105"}`}
+                  style={{
+                    background: `linear-gradient(90deg, ${color} 0%, #000 100%)`,
+                    boxShadow: `0 0 20px ${glow}`,
+                    borderColor: color
+                  }}
+                >
+                  <Led active={isPaid} disabled={!isPaid} color={color} glow={glow} />
+                  <Download className="w-5 h-5" /> Metadata
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -514,4 +598,3 @@ export default function App() {
     </div>
   );
 }
-// Updated Sun Nov  9 20:53:59 CET 2025
